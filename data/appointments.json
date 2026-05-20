@@ -1,0 +1,50 @@
+[
+  {
+    "id": "1716800000-apt1",
+    "patientId": "1716800000-sample1",
+    "patientName": "김민준",
+    "patientPhone": "010-1234-5678",
+    "date": "2026-05-20",
+    "time": "10:00",
+    "duration": 30,
+    "type": "followup",
+    "status": "scheduled",
+    "reason": "혈압 추적 관찰",
+    "doctorName": "정윤호",
+    "notes": "",
+    "createdAt": "2026-05-15T09:00:00.000Z",
+    "updatedAt": "2026-05-15T09:00:00.000Z"
+  },
+  {
+    "id": "1716800000-apt2",
+    "patientId": "1716800000-sample2",
+    "patientName": "이서연",
+    "patientPhone": "010-9876-5432",
+    "date": "2026-05-20",
+    "time": "14:00",
+    "duration": 45,
+    "type": "followup",
+    "status": "confirmed",
+    "reason": "당뇨 정기 검진",
+    "doctorName": "정윤호",
+    "notes": "HbA1c 결과 지참 요청",
+    "createdAt": "2026-05-16T10:00:00.000Z",
+    "updatedAt": "2026-05-16T10:00:00.000Z"
+  },
+  {
+    "id": "1716800000-apt3",
+    "patientId": "1716800000-sample3",
+    "patientName": "박도현",
+    "patientPhone": "010-5555-7777",
+    "date": "2026-05-22",
+    "time": "11:00",
+    "duration": 30,
+    "type": "initial",
+    "status": "scheduled",
+    "reason": "건강검진",
+    "doctorName": "정윤호",
+    "notes": "",
+    "createdAt": "2026-05-17T11:00:00.000Z",
+    "updatedAt": "2026-05-17T11:00:00.000Z"
+  }
+]
