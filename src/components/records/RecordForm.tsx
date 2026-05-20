@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { MedicalRecord, Patient } from '@/types';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { calculateAge, GENDER_LABELS } from '@/lib/utils';
+import { DiagnosisAutocomplete } from '@/components/ui/DiagnosisAutocomplete';
+import { QuickSelect } from '@/components/ui/QuickSelect';
+import { COMMON_SYMPTOMS, COMMON_TREATMENTS, COMMON_MEDICATIONS } from '@/lib/medical-terms';
 
 interface RecordFormProps {
   patients: Patient[];
@@ -140,6 +143,14 @@ export function RecordForm({ patients, initial = {}, onSubmit, onCancel }: Recor
           onChange={(e) => setForm((f) => ({ ...f, chiefComplaint: e.target.value }))}
           className={inputCls}
         />
+        <QuickSelect
+          label="빠른 입력:"
+          items={COMMON_SYMPTOMS}
+          onSelect={(s) => setForm((f) => ({
+            ...f,
+            chiefComplaint: f.chiefComplaint ? `${f.chiefComplaint}, ${s}` : s,
+          }))}
+        />
       </div>
 
       <div>
@@ -185,30 +196,12 @@ export function RecordForm({ patients, initial = {}, onSubmit, onCancel }: Recor
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            진단명 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            required
-            value={form.diagnosis}
-            onChange={(e) => setForm((f) => ({ ...f, diagnosis: e.target.value }))}
-            className={inputCls}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">진단 코드 (ICD-10)</label>
-          <input
-            type="text"
-            placeholder="예: J06.9"
-            value={form.diagnosisCode}
-            onChange={(e) => setForm((f) => ({ ...f, diagnosisCode: e.target.value }))}
-            className={inputCls}
-          />
-        </div>
-      </div>
+      <DiagnosisAutocomplete
+        value={form.diagnosis}
+        codeValue={form.diagnosisCode}
+        required
+        onChange={(name, code) => setForm((f) => ({ ...f, diagnosis: name, diagnosisCode: code }))}
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -221,6 +214,14 @@ export function RecordForm({ patients, initial = {}, onSubmit, onCancel }: Recor
           onChange={(e) => setForm((f) => ({ ...f, treatment: e.target.value }))}
           className={inputCls}
         />
+        <QuickSelect
+          label="빠른 입력:"
+          items={COMMON_TREATMENTS}
+          onSelect={(t) => setForm((f) => ({
+            ...f,
+            treatment: f.treatment ? `${f.treatment}, ${t}` : t,
+          }))}
+        />
       </div>
 
       <div>
@@ -230,6 +231,14 @@ export function RecordForm({ patients, initial = {}, onSubmit, onCancel }: Recor
           value={form.prescription}
           onChange={(e) => setForm((f) => ({ ...f, prescription: e.target.value }))}
           className={inputCls}
+        />
+        <QuickSelect
+          label="자주 쓰는 약물:"
+          items={COMMON_MEDICATIONS}
+          onSelect={(m) => setForm((f) => ({
+            ...f,
+            prescription: f.prescription ? `${f.prescription}\n${m}` : m,
+          }))}
         />
       </div>
 
