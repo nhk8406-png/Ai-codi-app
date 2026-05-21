@@ -18,6 +18,17 @@ export default function DashboardPage() {
 
   const recentRecords = records.slice(0, 5);
 
+  // 최근 6개월 월별 진료 통계
+  const monthlyStats = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - (5 - i));
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = `${d.getMonth() + 1}월`;
+    const count = records.filter((r) => r.visitDate.startsWith(key)).length;
+    return { label, count, key };
+  });
+  const maxCount = Math.max(...monthlyStats.map((m) => m.count), 1);
+
   const stats = [
     { label: '총 환자 수', value: patients.length, icon: Users, color: 'bg-blue-500', href: '/patients' },
     { label: '진료 기록', value: records.length, icon: FileText, color: 'bg-green-500', href: '/records' },
@@ -93,6 +104,25 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* 월별 진료 통계 */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
+        <h2 className="font-semibold text-gray-900 mb-4">월별 진료 현황 (최근 6개월)</h2>
+        <div className="flex items-end gap-3 h-32">
+          {monthlyStats.map((m) => (
+            <div key={m.key} className="flex-1 flex flex-col items-center gap-1">
+              <span className="text-xs font-semibold text-gray-600">{m.count > 0 ? m.count : ''}</span>
+              <div className="w-full relative flex items-end" style={{ height: '88px' }}>
+                <div
+                  className="w-full bg-blue-500 rounded-t-md transition-all"
+                  style={{ height: `${Math.max((m.count / maxCount) * 88, m.count > 0 ? 8 : 2)}px`, opacity: m.count === 0 ? 0.2 : 1 }}
+                />
+              </div>
+              <span className="text-xs text-gray-400">{m.label}</span>
+            </div>
+          ))}
         </div>
       </div>
 
