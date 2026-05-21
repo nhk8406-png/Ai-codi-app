@@ -19,9 +19,9 @@ export default function DashboardPage() {
   const recentRecords = records.slice(0, 5);
 
   // 최근 6개월 월별 진료 통계
-  const monthlyStats = Array.from({ length: 6 }, (_, i) => {
+  const monthlyStats = Array.from({ length: 12 }, (_, i) => {
     const d = new Date();
-    d.setMonth(d.getMonth() - (5 - i));
+    d.setMonth(d.getMonth() - (11 - i));
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     const label = `${d.getMonth() + 1}월`;
     const count = records.filter((r) => r.visitDate.startsWith(key)).length;
@@ -109,7 +109,7 @@ export default function DashboardPage() {
 
       {/* 월별 진료 통계 */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
-        <h2 className="font-semibold text-gray-900 mb-4">월별 진료 현황 (최근 6개월)</h2>
+        <h2 className="font-semibold text-gray-900 mb-4">월별 진료 현황 (최근 12개월)</h2>
         <div className="flex items-end gap-3 h-32">
           {monthlyStats.map((m) => (
             <div key={m.key} className="flex-1 flex flex-col items-center gap-1">
