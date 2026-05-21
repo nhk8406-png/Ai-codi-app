@@ -5,7 +5,7 @@ import { MedicalRecord, Patient } from '@/types';
 import { Modal } from '@/components/ui/Modal';
 import { RecordForm } from '@/components/records/RecordForm';
 import { formatDate } from '@/lib/utils';
-import { Plus, Search, FileText, Sparkles, Pencil, Trash2, ChevronDown, ChevronUp, Printer } from 'lucide-react';
+import { Plus, Search, FileText, Sparkles, Pencil, Trash2, ChevronDown, ChevronUp, Printer, ClipboardList } from 'lucide-react';
 
 export default function RecordsPage() {
   const [records, setRecords] = useState<MedicalRecord[]>([]);
@@ -142,9 +142,16 @@ export default function RecordsPage() {
                   <span className="text-xs text-gray-400">{r.doctorName} 의사</span>
                   <div className="flex items-center gap-1">
                     <button
+                      onClick={(e) => { e.stopPropagation(); window.open(`/records/certificate?id=${r.id}`, '_blank'); }}
+                      className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400"
+                      title="진단서 발급"
+                    >
+                      <ClipboardList size={14} />
+                    </button>
+                    <button
                       onClick={(e) => { e.stopPropagation(); window.open(`/records/print?id=${r.id}`, '_blank'); }}
                       className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400"
-                      title="인쇄"
+                      title="진료기록 인쇄"
                     >
                       <Printer size={14} />
                     </button>

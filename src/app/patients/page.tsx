@@ -5,7 +5,7 @@ import { Patient } from '@/types';
 import { Modal } from '@/components/ui/Modal';
 import { PatientForm } from '@/components/patients/PatientForm';
 import { formatDate, calculateAge, GENDER_LABELS } from '@/lib/utils';
-import { Plus, Search, User, Phone, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, User, Phone, Pencil, Trash2, Download } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PatientsPage() {
@@ -49,6 +49,23 @@ export default function PatientsPage() {
     load();
   };
 
+  const handleExportCSV = () => {
+    const headers = ['이름', '생년월일', '성별', '전화번호', '이메일', '주소', '혈액형', '알레르기', '기저질환', '보험번호', '등록일'];
+    const rows = patients.map((p) => [
+      p.name, p.birthDate,
+      p.gender === 'male' ? '남성' : p.gender === 'female' ? '여성' : '기타',
+      p.phone, p.email ?? '', p.address ?? '', p.bloodType ?? '',
+      p.allergies?.join('; ') ?? '', p.chronicDiseases?.join('; ') ?? '',
+      p.insuranceNumber ?? '', p.createdAt.split('T')[0],
+    ]);
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `환자목록_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`${name} 환자를 삭제하시겠습니까?`)) return;
     await fetch(`/api/patients/${id}`, { method: 'DELETE' });
@@ -62,13 +79,22 @@ export default function PatientsPage() {
           <h1 className="text-2xl font-bold text-gray-900">환자 관리</h1>
           <p className="text-sm text-gray-500 mt-1">총 {patients.length}명의 환자</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={18} />
-          환자 등록
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 border border-gray-300 text-gray-600 px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            <Download size={16} />
+            CSV 내보내기
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            <Plus size={18} />
+            환자 등록
+          </button>
+        </div>
       </div>
 
       <div className="relative mb-6">

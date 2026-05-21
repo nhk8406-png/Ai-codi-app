@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -10,15 +11,24 @@ import {
   Stethoscope,
 } from 'lucide-react';
 
-const navItems = [
-  { href: '/', label: '대시보드', icon: LayoutDashboard },
-  { href: '/patients', label: '환자 관리', icon: Users },
-  { href: '/records', label: '진료 기록', icon: FileText },
-  { href: '/appointments', label: '예약 관리', icon: Calendar },
-];
-
 export function Sidebar() {
   const pathname = usePathname();
+  const [todayCount, setTodayCount] = useState(0);
+
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    fetch(`/api/appointments?date=${today}`)
+      .then((r) => r.json())
+      .then((data) => setTodayCount(Array.isArray(data) ? data.length : 0))
+      .catch(() => {});
+  }, [pathname]);
+
+  const navItems = [
+    { href: '/', label: '대시보드', icon: LayoutDashboard, badge: null },
+    { href: '/patients', label: '환자 관리', icon: Users, badge: null },
+    { href: '/records', label: '진료 기록', icon: FileText, badge: null },
+    { href: '/appointments', label: '예약 관리', icon: Calendar, badge: todayCount > 0 ? todayCount : null },
+  ];
 
   return (
     <aside className="w-64 bg-slate-900 text-white flex flex-col min-h-screen">
@@ -35,7 +45,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, icon: Icon, badge }) => {
           const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
           return (
             <Link
@@ -48,7 +58,12 @@ export function Sidebar() {
               }`}
             >
               <Icon size={18} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {badge !== null && (
+                <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                  {badge}
+                </span>
+              )}
             </Link>
           );
         })}
