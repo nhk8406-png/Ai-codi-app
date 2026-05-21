@@ -6,6 +6,7 @@ import { Modal } from '@/components/ui/Modal';
 import { PatientForm } from '@/components/patients/PatientForm';
 import { formatDate, calculateAge, GENDER_LABELS } from '@/lib/utils';
 import { Plus, Search, User, Phone, Pencil, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 
 export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -110,12 +111,12 @@ export default function PatientsPage() {
               {filtered.map((p) => (
                 <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-3">
+                    <Link href={`/patients/${p.id}`} className="flex items-center gap-3 hover:opacity-75 transition-opacity">
                       <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-medium">
                         {p.name[0]}
                       </div>
-                      <span className="font-medium text-gray-900 text-sm">{p.name}</span>
-                    </div>
+                      <span className="font-medium text-gray-900 text-sm underline-offset-2 hover:underline">{p.name}</span>
+                    </Link>
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-600">
                     {formatDate(p.birthDate)} <span className="text-gray-400">({calculateAge(p.birthDate)}세)</span>
