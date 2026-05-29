@@ -123,12 +123,23 @@
     </div>
 
     <div>
-        <div class="section-title">모양</div>
+        <div class="section-title">도형</div>
         <div class="option-group" id="shapeGroup">
             <button class="opt active" data-shape="circle">원형</button>
             <button class="opt" data-shape="square">사각형</button>
             <button class="opt" data-shape="rounded">둥근 사각형</button>
             <button class="opt" data-shape="hexagon">육각형</button>
+        </div>
+    </div>
+
+    <div>
+        <div class="section-title">동물</div>
+        <div class="option-group" id="animalGroup">
+            <button class="opt" data-shape="cat">고양이</button>
+            <button class="opt" data-shape="bear">곰</button>
+            <button class="opt" data-shape="rabbit">토끼</button>
+            <button class="opt" data-shape="dog">강아지</button>
+            <button class="opt" data-shape="chick">병아리</button>
         </div>
     </div>
 
@@ -156,87 +167,141 @@ const ctx = canvas.getContext("2d");
 
 const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
+const SHAPES = {
+    circle:  { textY: 280, fontSize: 220 },
+    square:  { textY: 280, fontSize: 220 },
+    rounded: { textY: 280, fontSize: 220 },
+    hexagon: { textY: 280, fontSize: 220 },
+    cat:     { textY: 308, fontSize: 200 },
+    bear:    { textY: 312, fontSize: 200 },
+    rabbit:  { textY: 348, fontSize: 185 },
+    dog:     { textY: 248, fontSize: 200 },
+    chick:   { textY: 338, fontSize: 185 },
+};
+
 let shape = "circle";
 let style = "solid";
 let intervalMs = 1000;
 let paused = false;
 let timer = null;
 
-function randomColor(){
-    return "#" + Math.floor(Math.random()*16777215).toString(16).padStart(6,"0");
+function randomColor() {
+    return "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0");
 }
 
-function randomLetter(){
-    return letters[Math.floor(Math.random()*letters.length)];
+function randomLetter() {
+    return letters[Math.floor(Math.random() * letters.length)];
 }
 
-function hexPath(cx, cy, r){
-    ctx.beginPath();
-    for(let i=0;i<6;i++){
-        const a = Math.PI/180*(60*i - 30);
-        const x = cx + r*Math.cos(a);
-        const y = cy + r*Math.sin(a);
-        i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+function roundedRectPath(x, y, w, h, r) {
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+}
+
+function hexPath(cx, cy, r) {
+    for (let i = 0; i < 6; i++) {
+        const a = Math.PI / 180 * (60 * i - 30);
+        const x = cx + r * Math.cos(a);
+        const y = cy + r * Math.sin(a);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
     ctx.closePath();
 }
 
-function roundedRect(x, y, w, h, r){
+function drawShape() {
     ctx.beginPath();
-    ctx.moveTo(x+r, y);
-    ctx.lineTo(x+w-r, y);
-    ctx.quadraticCurveTo(x+w, y, x+w, y+r);
-    ctx.lineTo(x+w, y+h-r);
-    ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
-    ctx.lineTo(x+r, y+h);
-    ctx.quadraticCurveTo(x, y+h, x, y+h-r);
-    ctx.lineTo(x, y+r);
-    ctx.quadraticCurveTo(x, y, x+r, y);
-    ctx.closePath();
-}
 
-function drawShape(){
-    if(shape==="circle"){
-        ctx.beginPath();
-        ctx.arc(256,256,220,0,Math.PI*2);
-    } else if(shape==="square"){
-        ctx.beginPath();
-        ctx.rect(36,36,440,440);
-    } else if(shape==="rounded"){
-        roundedRect(36,36,440,440,80);
-    } else if(shape==="hexagon"){
-        hexPath(256,256,230);
+    if (shape === "circle") {
+        ctx.arc(256, 256, 220, 0, Math.PI * 2);
+
+    } else if (shape === "square") {
+        ctx.rect(36, 36, 440, 440);
+
+    } else if (shape === "rounded") {
+        roundedRectPath(36, 36, 440, 440, 80);
+
+    } else if (shape === "hexagon") {
+        hexPath(256, 256, 230);
+
+    } else if (shape === "cat") {
+        ctx.moveTo(95, 205);
+        ctx.lineTo(155, 50);
+        ctx.lineTo(225, 182);
+        ctx.closePath();
+        ctx.moveTo(287, 182);
+        ctx.lineTo(357, 50);
+        ctx.lineTo(417, 205);
+        ctx.closePath();
+        ctx.moveTo(441, 295);
+        ctx.arc(256, 295, 185, 0, Math.PI * 2);
+
+    } else if (shape === "bear") {
+        ctx.moveTo(185, 115);
+        ctx.arc(120, 115, 65, 0, Math.PI * 2);
+        ctx.moveTo(457, 115);
+        ctx.arc(392, 115, 65, 0, Math.PI * 2);
+        ctx.moveTo(446, 300);
+        ctx.arc(256, 300, 190, 0, Math.PI * 2);
+
+    } else if (shape === "rabbit") {
+        roundedRectPath(167, 22, 58, 185, 29);
+        roundedRectPath(287, 22, 58, 185, 29);
+        ctx.moveTo(416, 340);
+        ctx.arc(256, 340, 160, 0, Math.PI * 2);
+
+    } else if (shape === "dog") {
+        ctx.moveTo(144, 295);
+        ctx.ellipse(82, 295, 62, 118, 0, 0, Math.PI * 2);
+        ctx.moveTo(492, 295);
+        ctx.ellipse(430, 295, 62, 118, 0, 0, Math.PI * 2);
+        ctx.moveTo(441, 240);
+        ctx.arc(256, 240, 185, 0, Math.PI * 2);
+
+    } else if (shape === "chick") {
+        ctx.moveTo(426, 335);
+        ctx.arc(256, 335, 170, 0, Math.PI * 2);
+        ctx.moveTo(361, 140);
+        ctx.arc(256, 140, 105, 0, Math.PI * 2);
     }
 }
 
-function generateIcon(){
+function generateIcon() {
     const c1 = randomColor();
     const c2 = randomColor();
     const textColor = randomColor();
     const text = randomLetter();
+    const cfg = SHAPES[shape];
 
-    ctx.clearRect(0,0,512,512);
+    ctx.clearRect(0, 0, 512, 512);
 
-    if(style==="solid"){
+    if (style === "solid") {
         ctx.fillStyle = c1;
         drawShape();
         ctx.fill();
 
-    } else if(style==="gradient"){
-        const grad = ctx.createLinearGradient(36,36,476,476);
+    } else if (style === "gradient") {
+        const grad = ctx.createLinearGradient(36, 36, 476, 476);
         grad.addColorStop(0, c1);
         grad.addColorStop(1, c2);
         ctx.fillStyle = grad;
         drawShape();
         ctx.fill();
 
-    } else if(style==="twotone"){
+    } else if (style === "twotone") {
         ctx.fillStyle = c1;
         drawShape();
         ctx.fill();
         ctx.save();
         ctx.beginPath();
-        ctx.rect(256,0,512,512);
+        ctx.rect(256, 0, 512, 512);
         ctx.clip();
         ctx.fillStyle = c2;
         drawShape();
@@ -245,55 +310,58 @@ function generateIcon(){
     }
 
     ctx.fillStyle = textColor;
-    ctx.font = "bold 220px Arial";
+    ctx.font = `bold ${cfg.fontSize}px Arial`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(text, 256, 280);
+    ctx.fillText(text, 256, cfg.textY);
 }
 
-function restartTimer(){
+function restartTimer() {
     clearInterval(timer);
-    if(!paused) timer = setInterval(generateIcon, intervalMs);
+    if (!paused) timer = setInterval(generateIcon, intervalMs);
 }
 
-document.getElementById("shapeGroup").addEventListener("click", e=>{
-    const t = e.target.closest(".opt");
-    if(!t) return;
-    document.querySelectorAll("#shapeGroup .opt").forEach(b=>b.classList.remove("active"));
+function handleShapeClick(e) {
+    const t = e.target.closest(".opt[data-shape]");
+    if (!t) return;
+    document.querySelectorAll(".opt[data-shape]").forEach(b => b.classList.remove("active"));
     t.classList.add("active");
     shape = t.dataset.shape;
     generateIcon();
-});
+}
 
-document.getElementById("styleGroup").addEventListener("click", e=>{
-    const t = e.target.closest(".opt");
-    if(!t) return;
-    document.querySelectorAll("#styleGroup .opt").forEach(b=>b.classList.remove("active"));
+document.getElementById("shapeGroup").addEventListener("click", handleShapeClick);
+document.getElementById("animalGroup").addEventListener("click", handleShapeClick);
+
+document.getElementById("styleGroup").addEventListener("click", e => {
+    const t = e.target.closest(".opt[data-style]");
+    if (!t) return;
+    document.querySelectorAll(".opt[data-style]").forEach(b => b.classList.remove("active"));
     t.classList.add("active");
     style = t.dataset.style;
     generateIcon();
 });
 
-document.getElementById("btnPause").addEventListener("click", ()=>{
+document.getElementById("btnPause").addEventListener("click", () => {
     paused = !paused;
     document.getElementById("btnPause").textContent = paused ? "▶ 재생" : "⏸ 일시정지";
     restartTimer();
 });
 
-document.getElementById("btnOnce").addEventListener("click", ()=>{
+document.getElementById("btnOnce").addEventListener("click", () => {
     generateIcon();
 });
 
-document.getElementById("btnDownload").addEventListener("click", ()=>{
+document.getElementById("btnDownload").addEventListener("click", () => {
     const a = document.createElement("a");
     a.download = "icon.png";
     a.href = canvas.toDataURL("image/png");
     a.click();
 });
 
-document.getElementById("speedRange").addEventListener("input", e=>{
+document.getElementById("speedRange").addEventListener("input", e => {
     intervalMs = +e.target.value;
-    document.getElementById("speedLabel").textContent = (intervalMs/1000).toFixed(1) + "초";
+    document.getElementById("speedLabel").textContent = (intervalMs / 1000).toFixed(1) + "초";
     restartTimer();
 });
 
