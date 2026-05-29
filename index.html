@@ -21,11 +21,7 @@
         padding:24px;
     }
 
-    h1{
-        margin:0;
-        font-size:1.6rem;
-        letter-spacing:2px;
-    }
+    h1{ margin:0; font-size:1.6rem; letter-spacing:2px; }
 
     canvas{
         border-radius:24px;
@@ -34,92 +30,71 @@
         height:300px;
     }
 
-    .controls{
-        display:flex;
-        flex-direction:column;
-        gap:14px;
-        width:300px;
-    }
+    .controls{ display:flex; flex-direction:column; gap:14px; width:300px; }
 
-    .row{
-        display:flex;
-        gap:8px;
-    }
+    .row{ display:flex; gap:8px; }
 
     .btn{
-        flex:1;
-        padding:10px 0;
-        border:none;
-        border-radius:10px;
-        cursor:pointer;
-        font-size:0.85rem;
-        font-weight:bold;
-        transition: opacity 0.15s;
+        flex:1; padding:10px 0; border:none; border-radius:10px;
+        cursor:pointer; font-size:0.85rem; font-weight:bold;
+        transition:opacity 0.15s;
     }
     .btn:hover{ opacity:0.8; }
-
     .btn-pause{ background:#f0a500; color:#111; }
     .btn-download{ background:#2ecc71; color:#111; }
     .btn-once{ background:#3498db; color:#fff; }
 
-    .option-group{
-        display:flex;
-        gap:6px;
-        flex-wrap:wrap;
-    }
+    .option-group{ display:flex; gap:6px; flex-wrap:wrap; }
 
     .opt{
-        flex:1;
-        min-width:60px;
-        padding:7px 4px;
-        border:2px solid #444;
-        border-radius:8px;
-        background:transparent;
-        color:#aaa;
-        font-size:0.78rem;
-        cursor:pointer;
-        text-align:center;
-        transition: all 0.15s;
+        flex:1; min-width:60px; padding:7px 4px;
+        border:2px solid #444; border-radius:8px;
+        background:transparent; color:#aaa;
+        font-size:0.78rem; cursor:pointer; text-align:center;
+        transition:all 0.15s;
     }
-    .opt.active{
-        border-color:#fff;
-        color:#fff;
-        background:#222;
+    .opt.active{ border-color:#fff; color:#fff; background:#222; }
+
+    .text-input{
+        flex:1; padding:9px 12px;
+        border:2px solid #444; border-radius:8px;
+        background:#222; color:white;
+        font-size:1.1rem; font-weight:bold;
+        text-align:center; letter-spacing:6px;
+        text-transform:uppercase; outline:none;
+        transition:border-color 0.15s;
     }
+    .text-input:focus{ border-color:#888; }
+    .text-input::placeholder{ color:#555; letter-spacing:1px; font-size:0.8rem; font-weight:normal; }
 
     label{
-        font-size:0.8rem;
-        color:#aaa;
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
+        font-size:0.8rem; color:#aaa;
+        display:flex; justify-content:space-between; align-items:center;
     }
-
-    input[type=range]{
-        width:100%;
-        accent-color:#3498db;
-    }
+    input[type=range]{ width:100%; accent-color:#3498db; }
 
     .section-title{
-        font-size:0.72rem;
-        color:#666;
-        text-transform:uppercase;
-        letter-spacing:1px;
-        margin-bottom:2px;
+        font-size:0.72rem; color:#666;
+        text-transform:uppercase; letter-spacing:1px; margin-bottom:2px;
     }
 </style>
 </head>
 <body>
 
 <h1>자동 아이콘 생성기</h1>
-
 <canvas id="canvas" width="512" height="512"></canvas>
 
 <div class="controls">
+
     <div class="row">
         <button class="btn btn-pause" id="btnPause">⏸ 일시정지</button>
         <button class="btn btn-once" id="btnOnce">↻ 한 번 생성</button>
         <button class="btn btn-download" id="btnDownload">↓ 저장</button>
+    </div>
+
+    <div>
+        <div class="section-title">텍스트 (빈칸=랜덤)</div>
+        <input type="text" id="textInput" maxlength="2" placeholder="빈칸이면 랜덤" class="text-input">
     </div>
 
     <div>
@@ -153,17 +128,28 @@
     </div>
 
     <div>
+        <div class="section-title">효과 (중복 선택 가능)</div>
+        <div class="option-group" id="effectGroup">
+            <button class="opt" data-effect="outline">윤경선</button>
+            <button class="opt" data-effect="glow">발광</button>
+            <button class="opt" data-effect="shadow">그림자</button>
+        </div>
+    </div>
+
+    <div>
         <label>
             <span>속도</span>
             <span id="speedLabel">1.0초</span>
         </label>
         <input type="range" id="speedRange" min="200" max="3000" step="100" value="1000">
     </div>
+
 </div>
 
 <script>
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
+const textInput = document.getElementById("textInput");
 
 const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
@@ -184,6 +170,7 @@ let style = "solid";
 let intervalMs = 1000;
 let paused = false;
 let timer = null;
+const activeEffects = new Set();
 
 function randomColor() {
     return "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0");
@@ -191,6 +178,11 @@ function randomColor() {
 
 function randomLetter() {
     return letters[Math.floor(Math.random() * letters.length)];
+}
+
+function getText() {
+    const v = textInput.value.trim().toUpperCase();
+    return v.length > 0 ? v : randomLetter();
 }
 
 function roundedRectPath(x, y, w, h, r) {
@@ -218,75 +210,67 @@ function hexPath(cx, cy, r) {
 
 function drawShape() {
     ctx.beginPath();
-
     if (shape === "circle") {
         ctx.arc(256, 256, 220, 0, Math.PI * 2);
-
     } else if (shape === "square") {
         ctx.rect(36, 36, 440, 440);
-
     } else if (shape === "rounded") {
         roundedRectPath(36, 36, 440, 440, 80);
-
     } else if (shape === "hexagon") {
         hexPath(256, 256, 230);
-
     } else if (shape === "cat") {
-        ctx.moveTo(95, 205);
-        ctx.lineTo(155, 50);
-        ctx.lineTo(225, 182);
-        ctx.closePath();
-        ctx.moveTo(287, 182);
-        ctx.lineTo(357, 50);
-        ctx.lineTo(417, 205);
-        ctx.closePath();
-        ctx.moveTo(441, 295);
-        ctx.arc(256, 295, 185, 0, Math.PI * 2);
-
+        ctx.moveTo(95, 205); ctx.lineTo(155, 50); ctx.lineTo(225, 182); ctx.closePath();
+        ctx.moveTo(287, 182); ctx.lineTo(357, 50); ctx.lineTo(417, 205); ctx.closePath();
+        ctx.moveTo(441, 295); ctx.arc(256, 295, 185, 0, Math.PI * 2);
     } else if (shape === "bear") {
-        ctx.moveTo(185, 115);
-        ctx.arc(120, 115, 65, 0, Math.PI * 2);
-        ctx.moveTo(457, 115);
-        ctx.arc(392, 115, 65, 0, Math.PI * 2);
-        ctx.moveTo(446, 300);
-        ctx.arc(256, 300, 190, 0, Math.PI * 2);
-
+        ctx.moveTo(185, 115); ctx.arc(120, 115, 65, 0, Math.PI * 2);
+        ctx.moveTo(457, 115); ctx.arc(392, 115, 65, 0, Math.PI * 2);
+        ctx.moveTo(446, 300); ctx.arc(256, 300, 190, 0, Math.PI * 2);
     } else if (shape === "rabbit") {
         roundedRectPath(167, 22, 58, 185, 29);
         roundedRectPath(287, 22, 58, 185, 29);
-        ctx.moveTo(416, 340);
-        ctx.arc(256, 340, 160, 0, Math.PI * 2);
-
+        ctx.moveTo(416, 340); ctx.arc(256, 340, 160, 0, Math.PI * 2);
     } else if (shape === "dog") {
-        ctx.moveTo(144, 295);
-        ctx.ellipse(82, 295, 62, 118, 0, 0, Math.PI * 2);
-        ctx.moveTo(492, 295);
-        ctx.ellipse(430, 295, 62, 118, 0, 0, Math.PI * 2);
-        ctx.moveTo(441, 240);
-        ctx.arc(256, 240, 185, 0, Math.PI * 2);
-
+        ctx.moveTo(144, 295); ctx.ellipse(82, 295, 62, 118, 0, 0, Math.PI * 2);
+        ctx.moveTo(492, 295); ctx.ellipse(430, 295, 62, 118, 0, 0, Math.PI * 2);
+        ctx.moveTo(441, 240); ctx.arc(256, 240, 185, 0, Math.PI * 2);
     } else if (shape === "chick") {
-        ctx.moveTo(426, 335);
-        ctx.arc(256, 335, 170, 0, Math.PI * 2);
-        ctx.moveTo(361, 140);
-        ctx.arc(256, 140, 105, 0, Math.PI * 2);
+        ctx.moveTo(426, 335); ctx.arc(256, 335, 170, 0, Math.PI * 2);
+        ctx.moveTo(361, 140); ctx.arc(256, 140, 105, 0, Math.PI * 2);
     }
+}
+
+function resetShadow() {
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
 }
 
 function generateIcon() {
     const c1 = randomColor();
     const c2 = randomColor();
     const textColor = randomColor();
-    const text = randomLetter();
+    const text = getText();
     const cfg = SHAPES[shape];
 
+    const fs = text.length > 1 ? Math.round(cfg.fontSize * 0.62) : cfg.fontSize;
+
     ctx.clearRect(0, 0, 512, 512);
+
+    if (activeEffects.has("glow")) {
+        ctx.shadowBlur = 50;
+        ctx.shadowColor = c2;
+    } else if (activeEffects.has("shadow")) {
+        ctx.shadowBlur = 22;
+        ctx.shadowOffsetX = 18;
+        ctx.shadowOffsetY = 18;
+        ctx.shadowColor = "rgba(0,0,0,0.55)";
+    }
 
     if (style === "solid") {
         ctx.fillStyle = c1;
         drawShape();
         ctx.fill();
-
     } else if (style === "gradient") {
         const grad = ctx.createLinearGradient(36, 36, 476, 476);
         grad.addColorStop(0, c1);
@@ -294,7 +278,6 @@ function generateIcon() {
         ctx.fillStyle = grad;
         drawShape();
         ctx.fill();
-
     } else if (style === "twotone") {
         ctx.fillStyle = c1;
         drawShape();
@@ -309,8 +292,18 @@ function generateIcon() {
         ctx.restore();
     }
 
+    resetShadow();
+
+    if (activeEffects.has("outline")) {
+        ctx.strokeStyle = textColor;
+        ctx.lineWidth = 14;
+        ctx.lineJoin = "round";
+        drawShape();
+        ctx.stroke();
+    }
+
     ctx.fillStyle = textColor;
-    ctx.font = `bold ${cfg.fontSize}px Arial`;
+    ctx.font = `bold ${fs}px Arial`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(text, 256, cfg.textY);
@@ -342,15 +335,29 @@ document.getElementById("styleGroup").addEventListener("click", e => {
     generateIcon();
 });
 
+document.getElementById("effectGroup").addEventListener("click", e => {
+    const t = e.target.closest(".opt[data-effect]");
+    if (!t) return;
+    const fx = t.dataset.effect;
+    if (activeEffects.has(fx)) {
+        activeEffects.delete(fx);
+        t.classList.remove("active");
+    } else {
+        activeEffects.add(fx);
+        t.classList.add("active");
+    }
+    generateIcon();
+});
+
+textInput.addEventListener("input", () => generateIcon());
+
 document.getElementById("btnPause").addEventListener("click", () => {
     paused = !paused;
     document.getElementById("btnPause").textContent = paused ? "▶ 재생" : "⏸ 일시정지";
     restartTimer();
 });
 
-document.getElementById("btnOnce").addEventListener("click", () => {
-    generateIcon();
-});
+document.getElementById("btnOnce").addEventListener("click", () => generateIcon());
 
 document.getElementById("btnDownload").addEventListener("click", () => {
     const a = document.createElement("a");
