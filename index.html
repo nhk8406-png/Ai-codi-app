@@ -4,27 +4,108 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>자동 아이콘 생성기</title>
-
 <style>
+    *{ box-sizing: border-box; }
+
     body{
         margin:0;
         background:#111;
         display:flex;
         justify-content:center;
         align-items:center;
-        height:100vh;
+        min-height:100vh;
         flex-direction:column;
         color:white;
-        font-family:Arial;
+        font-family:Arial, sans-serif;
+        gap:24px;
+        padding:24px;
+    }
+
+    h1{
+        margin:0;
+        font-size:1.6rem;
+        letter-spacing:2px;
     }
 
     canvas{
         border-radius:24px;
-        box-shadow:0 0 30px rgba(255,255,255,0.2);
+        box-shadow:0 0 40px rgba(255,255,255,0.15);
+        width:300px;
+        height:300px;
     }
 
-    h1{
-        margin-bottom:20px;
+    .controls{
+        display:flex;
+        flex-direction:column;
+        gap:14px;
+        width:300px;
+    }
+
+    .row{
+        display:flex;
+        gap:8px;
+    }
+
+    .btn{
+        flex:1;
+        padding:10px 0;
+        border:none;
+        border-radius:10px;
+        cursor:pointer;
+        font-size:0.85rem;
+        font-weight:bold;
+        transition: opacity 0.15s;
+    }
+    .btn:hover{ opacity:0.8; }
+
+    .btn-pause{ background:#f0a500; color:#111; }
+    .btn-download{ background:#2ecc71; color:#111; }
+    .btn-once{ background:#3498db; color:#fff; }
+
+    .option-group{
+        display:flex;
+        gap:6px;
+        flex-wrap:wrap;
+    }
+
+    .opt{
+        flex:1;
+        min-width:60px;
+        padding:7px 4px;
+        border:2px solid #444;
+        border-radius:8px;
+        background:transparent;
+        color:#aaa;
+        font-size:0.78rem;
+        cursor:pointer;
+        text-align:center;
+        transition: all 0.15s;
+    }
+    .opt.active{
+        border-color:#fff;
+        color:#fff;
+        background:#222;
+    }
+
+    label{
+        font-size:0.8rem;
+        color:#aaa;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+    }
+
+    input[type=range]{
+        width:100%;
+        accent-color:#3498db;
+    }
+
+    .section-title{
+        font-size:0.72rem;
+        color:#666;
+        text-transform:uppercase;
+        letter-spacing:1px;
+        margin-bottom:2px;
     }
 </style>
 </head>
@@ -34,53 +115,190 @@
 
 <canvas id="canvas" width="512" height="512"></canvas>
 
-<script>
+<div class="controls">
+    <div class="row">
+        <button class="btn btn-pause" id="btnPause">⏸ 일시정지</button>
+        <button class="btn btn-once" id="btnOnce">↻ 한 번 생성</button>
+        <button class="btn btn-download" id="btnDownload">↓ 저장</button>
+    </div>
 
+    <div>
+        <div class="section-title">모양</div>
+        <div class="option-group" id="shapeGroup">
+            <button class="opt active" data-shape="circle">원형</button>
+            <button class="opt" data-shape="square">사각형</button>
+            <button class="opt" data-shape="rounded">둥근 사각형</button>
+            <button class="opt" data-shape="hexagon">육각형</button>
+        </div>
+    </div>
+
+    <div>
+        <div class="section-title">스타일</div>
+        <div class="option-group" id="styleGroup">
+            <button class="opt active" data-style="solid">단색</button>
+            <button class="opt" data-style="gradient">그라디언트</button>
+            <button class="opt" data-style="twotone">투톤</button>
+        </div>
+    </div>
+
+    <div>
+        <label>
+            <span>속도</span>
+            <span id="speedLabel">1.0초</span>
+        </label>
+        <input type="range" id="speedRange" min="200" max="3000" step="100" value="1000">
+    </div>
+</div>
+
+<script>
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
+let shape = "circle";
+let style = "solid";
+let intervalMs = 1000;
+let paused = false;
+let timer = null;
+
 function randomColor(){
-    return "#" + Math.floor(Math.random()*16777215)
-        .toString(16)
-        .padStart(6, "0");
+    return "#" + Math.floor(Math.random()*16777215).toString(16).padStart(6,"0");
 }
 
 function randomLetter(){
     return letters[Math.floor(Math.random()*letters.length)];
 }
 
-function generateIcon(){
+function hexPath(cx, cy, r){
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+        const a = Math.PI/180*(60*i - 30);
+        const x = cx + r*Math.cos(a);
+        const y = cy + r*Math.sin(a);
+        i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+}
 
-    const bg = randomColor();
+function roundedRect(x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w-r, y);
+    ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+    ctx.lineTo(x+w, y+h-r);
+    ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+    ctx.lineTo(x+r, y+h);
+    ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+    ctx.lineTo(x, y+r);
+    ctx.quadraticCurveTo(x, y, x+r, y);
+    ctx.closePath();
+}
+
+function drawShape(){
+    if(shape==="circle"){
+        ctx.beginPath();
+        ctx.arc(256,256,220,0,Math.PI*2);
+    } else if(shape==="square"){
+        ctx.beginPath();
+        ctx.rect(36,36,440,440);
+    } else if(shape==="rounded"){
+        roundedRect(36,36,440,440,80);
+    } else if(shape==="hexagon"){
+        hexPath(256,256,230);
+    }
+}
+
+function generateIcon(){
+    const c1 = randomColor();
+    const c2 = randomColor();
     const textColor = randomColor();
     const text = randomLetter();
 
-    // 배경
     ctx.clearRect(0,0,512,512);
 
-    ctx.fillStyle = bg;
+    if(style==="solid"){
+        ctx.fillStyle = c1;
+        drawShape();
+        ctx.fill();
 
-    // 랜덤 원형
-    ctx.beginPath();
-    ctx.arc(256,256,220,0,Math.PI*2);
-    ctx.fill();
+    } else if(style==="gradient"){
+        const grad = ctx.createLinearGradient(36,36,476,476);
+        grad.addColorStop(0, c1);
+        grad.addColorStop(1, c2);
+        ctx.fillStyle = grad;
+        drawShape();
+        ctx.fill();
 
-    // 글자
+    } else if(style==="twotone"){
+        ctx.fillStyle = c1;
+        drawShape();
+        ctx.fill();
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(256,0,512,512);
+        ctx.clip();
+        ctx.fillStyle = c2;
+        drawShape();
+        ctx.fill();
+        ctx.restore();
+    }
+
     ctx.fillStyle = textColor;
     ctx.font = "bold 220px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(text,256,280);
+    ctx.fillText(text, 256, 280);
 }
 
-// 최초 실행
+function restartTimer(){
+    clearInterval(timer);
+    if(!paused) timer = setInterval(generateIcon, intervalMs);
+}
+
+document.getElementById("shapeGroup").addEventListener("click", e=>{
+    const t = e.target.closest(".opt");
+    if(!t) return;
+    document.querySelectorAll("#shapeGroup .opt").forEach(b=>b.classList.remove("active"));
+    t.classList.add("active");
+    shape = t.dataset.shape;
+    generateIcon();
+});
+
+document.getElementById("styleGroup").addEventListener("click", e=>{
+    const t = e.target.closest(".opt");
+    if(!t) return;
+    document.querySelectorAll("#styleGroup .opt").forEach(b=>b.classList.remove("active"));
+    t.classList.add("active");
+    style = t.dataset.style;
+    generateIcon();
+});
+
+document.getElementById("btnPause").addEventListener("click", ()=>{
+    paused = !paused;
+    document.getElementById("btnPause").textContent = paused ? "▶ 재생" : "⏸ 일시정지";
+    restartTimer();
+});
+
+document.getElementById("btnOnce").addEventListener("click", ()=>{
+    generateIcon();
+});
+
+document.getElementById("btnDownload").addEventListener("click", ()=>{
+    const a = document.createElement("a");
+    a.download = "icon.png";
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+});
+
+document.getElementById("speedRange").addEventListener("input", e=>{
+    intervalMs = +e.target.value;
+    document.getElementById("speedLabel").textContent = (intervalMs/1000).toFixed(1) + "초";
+    restartTimer();
+});
+
 generateIcon();
-
-// 1초마다 자동 생성
-setInterval(generateIcon, 1000);
-
+timer = setInterval(generateIcon, intervalMs);
 </script>
 
 </body>
