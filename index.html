@@ -3,453 +3,624 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>자동 아이콘 생성기</title>
+<title>이모티콘 제작기</title>
 <style>
-    *{ box-sizing: border-box; }
-
-    body{
-        margin:0;
-        background:#111;
-        display:flex;
-        justify-content:center;
-        align-items:center;
-        min-height:100vh;
-        flex-direction:column;
-        color:white;
-        font-family:Arial, sans-serif;
-        gap:24px;
-        padding:24px;
-    }
-
-    h1{ margin:0; font-size:1.6rem; letter-spacing:2px; }
-
-    canvas{
-        border-radius:24px;
-        box-shadow:0 0 40px rgba(255,255,255,0.15);
-        width:300px;
-        height:300px;
-    }
-
-    .controls{ display:flex; flex-direction:column; gap:14px; width:300px; }
-
-    .row{ display:flex; gap:8px; }
-
-    .btn{
-        flex:1; padding:10px 0; border:none; border-radius:10px;
-        cursor:pointer; font-size:0.85rem; font-weight:bold;
-        transition:opacity 0.15s;
-    }
-    .btn:hover{ opacity:0.8; }
-    .btn-pause{ background:#f0a500; color:#111; }
-    .btn-download{ background:#2ecc71; color:#111; }
-    .btn-once{ background:#3498db; color:#fff; }
-
-    .option-group{ display:flex; gap:6px; flex-wrap:wrap; }
-
-    .opt{
-        flex:1; min-width:56px; padding:7px 4px;
-        border:2px solid #444; border-radius:8px;
-        background:transparent; color:#aaa;
-        font-size:0.78rem; cursor:pointer; text-align:center;
-        transition:all 0.15s;
-    }
-    .opt.active{ border-color:#fff; color:#fff; background:#222; }
-
-    .text-input{
-        width:100%; padding:9px 12px;
-        border:2px solid #444; border-radius:8px;
-        background:#222; color:white;
-        font-size:1.1rem; font-weight:bold;
-        text-align:center; letter-spacing:6px;
-        text-transform:uppercase; outline:none;
-        transition:border-color 0.15s;
-    }
-    .text-input:focus{ border-color:#888; }
-    .text-input::placeholder{ color:#555; letter-spacing:1px; font-size:0.8rem; font-weight:normal; }
-
-    label{
-        font-size:0.8rem; color:#aaa;
-        display:flex; justify-content:space-between; align-items:center;
-    }
-    input[type=range]{ width:100%; accent-color:#3498db; }
-
-    .section-title{
-        font-size:0.72rem; color:#666;
-        text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;
-    }
-
-    .gallery{
-        display:grid;
-        grid-template-columns: repeat(6, 1fr);
-        gap:6px;
-    }
-    .gallery-item{
-        aspect-ratio:1;
-        border-radius:8px;
-        cursor:pointer;
-        opacity:0.65;
-        transition:opacity 0.15s, transform 0.15s;
-        object-fit:cover;
-        width:100%;
-        border:2px solid transparent;
-    }
-    .gallery-item:hover{ opacity:1; transform:scale(1.08); border-color:#fff; }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#1a1a2e;display:flex;flex-direction:column;align-items:center;min-height:100vh;color:white;font-family:Arial,sans-serif;padding:20px;gap:16px;}
+h1{font-size:1.4rem;letter-spacing:2px;}
+.app{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;justify-content:center;}
+.canvas-area{display:flex;flex-direction:column;gap:10px;align-items:center;}
+#canvas{background:white;border-radius:20px;box-shadow:0 0 40px rgba(255,255,255,0.2);cursor:crosshair;width:360px;height:360px;}
+.canvas-btns{display:flex;gap:8px;}
+.panel{width:300px;display:flex;flex-direction:column;gap:10px;}
+.section{background:#16213e;border-radius:12px;padding:12px;}
+.sec-title{font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.stamp-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+.stamp-btn{aspect-ratio:1;border-radius:10px;border:2px solid #333;background:#0f3460;color:white;font-size:1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+.stamp-btn:hover{border-color:#aaa;transform:scale(1.1);}
+.stamp-btn.sel{border-color:#fff;background:#e94560;}
+.btn{padding:9px 14px;border:none;border-radius:9px;cursor:pointer;font-size:0.82rem;font-weight:bold;transition:opacity 0.15s;}
+.btn:hover{opacity:0.8;}
+.btn-red{background:#e94560;color:white;}
+.btn-green{background:#2ecc71;color:#111;}
+.btn-gray{background:#444;color:white;}
+.row{display:flex;gap:8px;}
+.row .btn{flex:1;}
+.color-row{display:flex;gap:6px;flex-wrap:wrap;}
+.cswatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color 0.15s,transform 0.15s;}
+.cswatch:hover{transform:scale(1.15);}
+.cswatch.sel{border-color:white;}
+.text-input{width:100%;padding:8px 10px;border:2px solid #333;border-radius:8px;background:#0f3460;color:white;font-size:0.95rem;outline:none;}
+.text-input:focus{border-color:#888;}
+.size-row{display:flex;align-items:center;gap:8px;font-size:0.8rem;color:#aaa;}
+input[type=range]{flex:1;accent-color:#e94560;}
+.mode-row{display:flex;gap:6px;}
+.mode-btn{flex:1;padding:7px 4px;border:2px solid #333;border-radius:8px;background:transparent;color:#aaa;font-size:0.75rem;cursor:pointer;text-align:center;transition:all 0.15s;}
+.mode-btn.active{border-color:#e94560;color:white;background:#1a0a16;}
+.bg-row{display:flex;gap:6px;flex-wrap:wrap;}
+.bg-btn{padding:6px 10px;border-radius:8px;border:2px solid #333;background:transparent;color:#aaa;font-size:0.75rem;cursor:pointer;transition:all 0.15s;}
+.bg-btn.active{border-color:#fff;color:#fff;background:#222;}
+.gal-row{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;}
+.gal-img{width:100%;aspect-ratio:1;border-radius:6px;cursor:pointer;object-fit:cover;border:2px solid transparent;opacity:0.7;transition:all 0.15s;}
+.gal-img:hover{opacity:1;border-color:#fff;transform:scale(1.05);}
 </style>
 </head>
 <body>
-
-<h1>자동 아이콘 생성기</h1>
-<canvas id="canvas" width="512" height="512"></canvas>
-
-<div class="controls">
-
-    <div class="row">
-        <button class="btn btn-pause" id="btnPause">⏸ 일시정지</button>
-        <button class="btn btn-once" id="btnOnce">↻ 한 번 생성</button>
-        <button class="btn btn-download" id="btnDownload">↓ 저장</button>
+<h1>✨ 이모티콘 제작기</h1>
+<div class="app">
+  <div class="canvas-area">
+    <canvas id="canvas" width="512" height="512"></canvas>
+    <div class="canvas-btns">
+      <button class="btn btn-gray" id="btnUndo">↩ 되돌리기</button>
+      <button class="btn btn-red" id="btnClear">✕ 초기화</button>
+      <button class="btn btn-green" id="btnSave">↓ 저장</button>
     </div>
-
-    <div>
-        <div class="section-title">텍스트 (빈칸=랜덤)</div>
-        <input type="text" id="textInput" maxlength="2" placeholder="빈칸이면 랜덤" class="text-input">
+  </div>
+  <div class="panel">
+    <div class="section">
+      <div class="sec-title">모드</div>
+      <div class="mode-row">
+        <button class="mode-btn active" data-mode="stamp">스탬프</button>
+        <button class="mode-btn" data-mode="text">텍스트</button>
+        <button class="mode-btn" data-mode="erase">지우기</button>
+      </div>
     </div>
-
-    <div>
-        <div class="section-title">도형</div>
-        <div class="option-group" id="shapeGroup">
-            <button class="opt active" data-shape="circle">원형</button>
-            <button class="opt" data-shape="square">사각형</button>
-            <button class="opt" data-shape="rounded">둥근 사각형</button>
-            <button class="opt" data-shape="hexagon">육각형</button>
-        </div>
+    <div class="section">
+      <div class="sec-title">캐릭터</div>
+      <div class="stamp-grid" id="charGrid">
+        <button class="stamp-btn sel" data-stamp="cat" title="고양이">🐱</button>
+        <button class="stamp-btn" data-stamp="bear" title="곰">🐻</button>
+        <button class="stamp-btn" data-stamp="rabbit" title="토끼">🐰</button>
+        <button class="stamp-btn" data-stamp="dog" title="강아지">🐶</button>
+        <button class="stamp-btn" data-stamp="chick" title="병아리">🐣</button>
+      </div>
     </div>
-
-    <div>
-        <div class="section-title">동물</div>
-        <div class="option-group" id="animalGroup">
-            <button class="opt" data-shape="cat">고양이</button>
-            <button class="opt" data-shape="bear">곰</button>
-            <button class="opt" data-shape="rabbit">토끼</button>
-            <button class="opt" data-shape="dog">강아지</button>
-            <button class="opt" data-shape="chick">병아리</button>
-        </div>
+    <div class="section">
+      <div class="sec-title">표정</div>
+      <div class="stamp-grid" id="faceGrid">
+        <button class="stamp-btn sel" data-face="smile" title="미소">🙂</button>
+        <button class="stamp-btn" data-face="happy" title="행복">😄</button>
+        <button class="stamp-btn" data-face="love" title="사랑">😍</button>
+        <button class="stamp-btn" data-face="surprised" title="놀람">😮</button>
+        <button class="stamp-btn" data-face="sad" title="슬픔">😢</button>
+      </div>
     </div>
-
-    <div>
-        <div class="section-title">색상 테마</div>
-        <div class="option-group" id="themeGroup">
-            <button class="opt active" data-theme="random">랜덤</button>
-            <button class="opt" data-theme="warm">따뜻한</button>
-            <button class="opt" data-theme="cool">차가운</button>
-            <button class="opt" data-theme="pastel">파스텔</button>
-            <button class="opt" data-theme="dark">다크</button>
-            <button class="opt" data-theme="neon">네온</button>
-        </div>
+    <div class="section">
+      <div class="sec-title">데코</div>
+      <div class="stamp-grid" id="decoGrid">
+        <button class="stamp-btn" data-stamp="heart" title="하트">❤️</button>
+        <button class="stamp-btn" data-stamp="star" title="별">⭐</button>
+        <button class="stamp-btn" data-stamp="balloon" title="풍선">🎈</button>
+        <button class="stamp-btn" data-stamp="cake" title="케이크">🎂</button>
+        <button class="stamp-btn" data-stamp="confetti" title="폭죽">🎉</button>
+        <button class="stamp-btn" data-stamp="flower" title="꽃">🌸</button>
+        <button class="stamp-btn" data-stamp="sparkle" title="반짝">✨</button>
+        <button class="stamp-btn" data-stamp="ribbon" title="리본">🎀</button>
+        <button class="stamp-btn" data-stamp="bubble" title="말풍선">💬</button>
+        <button class="stamp-btn" data-stamp="crown" title="왕관">👑</button>
+      </div>
     </div>
-
-    <div>
-        <div class="section-title">스타일</div>
-        <div class="option-group" id="styleGroup">
-            <button class="opt active" data-style="solid">단색</button>
-            <button class="opt" data-style="gradient">그라디언트</button>
-            <button class="opt" data-style="twotone">투톤</button>
-        </div>
+    <div class="section">
+      <div class="sec-title">색상</div>
+      <div class="color-row" id="colorRow"></div>
     </div>
-
-    <div>
-        <div class="section-title">효과 (중복 선택 가능)</div>
-        <div class="option-group" id="effectGroup">
-            <button class="opt" data-effect="outline">윤경선</button>
-            <button class="opt" data-effect="glow">발광</button>
-            <button class="opt" data-effect="shadow">그림자</button>
-        </div>
+    <div class="section">
+      <div class="sec-title">배경</div>
+      <div class="bg-row" id="bgRow">
+        <button class="bg-btn active" data-bg="white">흰색</button>
+        <button class="bg-btn" data-bg="pink">핑크</button>
+        <button class="bg-btn" data-bg="yellow">노랑</button>
+        <button class="bg-btn" data-bg="sky">하늘</button>
+        <button class="bg-btn" data-bg="none">투명</button>
+      </div>
     </div>
-
-    <div>
-        <label>
-            <span>속도</span>
-            <span id="speedLabel">1.0초</span>
-        </label>
-        <input type="range" id="speedRange" min="200" max="3000" step="100" value="1000">
+    <div class="section">
+      <div class="sec-title">텍스트 (텍스트 모드)</div>
+      <input type="text" id="textInput" class="text-input" placeholder="텍스트 입력..." maxlength="12" value="HBD">
     </div>
-
-    <div>
-        <div class="section-title">최근 생성 (클릭하면 복원)</div>
-        <div class="gallery" id="gallery"></div>
+    <div class="section">
+      <div class="sec-title">크기</div>
+      <div class="size-row">
+        <span>S</span>
+        <input type="range" id="sizeRange" min="40" max="220" step="10" value="120">
+        <span>L</span>
+      </div>
     </div>
-
+    <div class="section">
+      <div class="sec-title">최근 저장 (클릭=다운로드)</div>
+      <div class="gal-row" id="gallery"></div>
+    </div>
+  </div>
 </div>
-
 <script>
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-const textInput = document.getElementById("textInput");
 
-const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+let currentStamp = "cat";
+let currentFace = "smile";
+let currentColor = "#FF8FAB";
+let stampSize = 120;
+let mode = "stamp";
+let bg = "white";
+let layers = [];
+let undoStack = [];
+const UNDO_MAX = 20;
+const galUrls = [];
 
-const SHAPES = {
-    circle:  { textY: 280, fontSize: 220 },
-    square:  { textY: 280, fontSize: 220 },
-    rounded: { textY: 280, fontSize: 220 },
-    hexagon: { textY: 280, fontSize: 220 },
-    cat:     { textY: 308, fontSize: 200 },
-    bear:    { textY: 312, fontSize: 200 },
-    rabbit:  { textY: 348, fontSize: 185 },
-    dog:     { textY: 248, fontSize: 200 },
-    chick:   { textY: 338, fontSize: 185 },
-};
+const COLORS = [
+  "#FF8FAB","#FFB347","#FFD700","#98FB98","#87CEEB",
+  "#DDA0DD","#FF6B6B","#4ECDC4","#FFA07A","#B0E0E6",
+  "#FFB6C1","#FFEAA7","#A8E6CF","#C9B1FF","#74B9FF",
+  "#FFFFFF","#DDDDDD","#888888","#444444","#8B4513"
+];
 
-let shape = "circle";
-let style = "solid";
-let colorTheme = "random";
-let intervalMs = 1000;
-let paused = false;
-let timer = null;
-const activeEffects = new Set();
-const galleryUrls = [];
-const GALLERY_MAX = 6;
+const charStamps = new Set(["cat","bear","rabbit","dog","chick"]);
+const decoStamps = new Set(["heart","star","balloon","cake","confetti","flower","sparkle","ribbon","bubble","crown"]);
 
-function hslToHex(h, s, l) {
-    l /= 100;
-    const a = s * Math.min(l, 1 - l) / 100;
-    const f = n => {
-        const k = (n + h / 30) % 12;
-        const c = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-        return Math.round(255 * c).toString(16).padStart(2, "0");
-    };
-    return `#${f(0)}${f(8)}${f(4)}`;
+const colorRow = document.getElementById("colorRow");
+COLORS.forEach(c => {
+  const s = document.createElement("div");
+  s.className = "cswatch" + (c === currentColor ? " sel" : "");
+  s.style.background = c;
+  if (c === "#FFFFFF" || c === "#DDDDDD") s.style.border = "2px solid #555";
+  s.addEventListener("click", () => {
+    document.querySelectorAll(".cswatch").forEach(x => x.classList.remove("sel"));
+    s.classList.add("sel");
+    currentColor = c;
+  });
+  colorRow.appendChild(s);
+});
+
+function lighten(hex, amt) {
+  if (!hex || hex[0]!=="#") return hex;
+  let r=Math.min(255,parseInt(hex.slice(1,3),16)+amt);
+  let g=Math.min(255,parseInt(hex.slice(3,5),16)+amt);
+  let b=Math.min(255,parseInt(hex.slice(5,7),16)+amt);
+  return `rgb(${r},${g},${b})`;
+}
+function darken(hex, amt) {
+  if (!hex || hex[0]!=="#") return hex;
+  let r=Math.max(0,parseInt(hex.slice(1,3),16)-amt);
+  let g=Math.max(0,parseInt(hex.slice(3,5),16)-amt);
+  let b=Math.max(0,parseInt(hex.slice(5,7),16)-amt);
+  return `rgb(${r},${g},${b})`;
+}
+function rrect(x,y,w,h,r){
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+}
+function stkfill(fill, stroke="#FFFFFF", lw=6){
+  ctx.strokeStyle=stroke; ctx.lineWidth=lw; ctx.lineJoin="round";
+  ctx.stroke(); ctx.fillStyle=fill; ctx.fill();
 }
 
-function rnd(a, b) { return a + Math.random() * (b - a); }
-
-function themedColor() {
-    switch (colorTheme) {
-        case "warm":   return hslToHex(rnd(0,   60),  rnd(65, 100), rnd(40, 65));
-        case "cool":   return hslToHex(rnd(180, 270), rnd(60, 100), rnd(35, 65));
-        case "pastel": return hslToHex(rnd(0,   360), rnd(35,  65), rnd(70, 88));
-        case "dark":   return hslToHex(rnd(0,   360), rnd(40,  80), rnd(12, 38));
-        case "neon":   return hslToHex(rnd(0,   360), rnd(90, 100), rnd(48, 65));
-        default:       return "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0");
+function drawBg() {
+  ctx.clearRect(0,0,512,512);
+  if (bg==="none") {
+    for(let x=0;x<512;x+=32) for(let y=0;y<512;y+=32){
+      ctx.fillStyle=((x+y)/32)%2===0?"#ddd":"#bbb";
+      ctx.fillRect(x,y,32,32);
     }
-}
-
-function getText() {
-    const v = textInput.value.trim().toUpperCase();
-    return v.length > 0 ? v : letters[Math.floor(Math.random() * letters.length)];
-}
-
-function roundedRectPath(x, y, w, h, r) {
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-}
-
-function hexPath(cx, cy, r) {
-    for (let i = 0; i < 6; i++) {
-        const a = Math.PI / 180 * (60 * i - 30);
-        const x = cx + r * Math.cos(a);
-        const y = cy + r * Math.sin(a);
-        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    return;
+  }
+  if (bg==="white"){ ctx.fillStyle="#FFFFFF"; ctx.fillRect(0,0,512,512); return; }
+  if (bg==="pink"){
+    const g=ctx.createRadialGradient(256,256,0,256,256,380);
+    g.addColorStop(0,"#FFE4EF"); g.addColorStop(1,"#FFADD0");
+    ctx.fillStyle=g; ctx.fillRect(0,0,512,512);
+    ctx.fillStyle="rgba(255,255,255,0.35)";
+    for(let x=24;x<512;x+=48) for(let y=24;y<512;y+=48){
+      ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill();
     }
-    ctx.closePath();
-}
-
-function drawShape() {
-    ctx.beginPath();
-    if (shape === "circle") {
-        ctx.arc(256, 256, 220, 0, Math.PI * 2);
-    } else if (shape === "square") {
-        ctx.rect(36, 36, 440, 440);
-    } else if (shape === "rounded") {
-        roundedRectPath(36, 36, 440, 440, 80);
-    } else if (shape === "hexagon") {
-        hexPath(256, 256, 230);
-    } else if (shape === "cat") {
-        ctx.moveTo(95, 205); ctx.lineTo(155, 50); ctx.lineTo(225, 182); ctx.closePath();
-        ctx.moveTo(287, 182); ctx.lineTo(357, 50); ctx.lineTo(417, 205); ctx.closePath();
-        ctx.moveTo(441, 295); ctx.arc(256, 295, 185, 0, Math.PI * 2);
-    } else if (shape === "bear") {
-        ctx.moveTo(185, 115); ctx.arc(120, 115, 65, 0, Math.PI * 2);
-        ctx.moveTo(457, 115); ctx.arc(392, 115, 65, 0, Math.PI * 2);
-        ctx.moveTo(446, 300); ctx.arc(256, 300, 190, 0, Math.PI * 2);
-    } else if (shape === "rabbit") {
-        roundedRectPath(167, 22, 58, 185, 29);
-        roundedRectPath(287, 22, 58, 185, 29);
-        ctx.moveTo(416, 340); ctx.arc(256, 340, 160, 0, Math.PI * 2);
-    } else if (shape === "dog") {
-        ctx.moveTo(144, 295); ctx.ellipse(82, 295, 62, 118, 0, 0, Math.PI * 2);
-        ctx.moveTo(492, 295); ctx.ellipse(430, 295, 62, 118, 0, 0, Math.PI * 2);
-        ctx.moveTo(441, 240); ctx.arc(256, 240, 185, 0, Math.PI * 2);
-    } else if (shape === "chick") {
-        ctx.moveTo(426, 335); ctx.arc(256, 335, 170, 0, Math.PI * 2);
-        ctx.moveTo(361, 140); ctx.arc(256, 140, 105, 0, Math.PI * 2);
+    return;
+  }
+  if (bg==="yellow"){
+    const g=ctx.createRadialGradient(256,256,0,256,256,380);
+    g.addColorStop(0,"#FFFDE7"); g.addColorStop(1,"#FFF59D");
+    ctx.fillStyle=g; ctx.fillRect(0,0,512,512);
+    ctx.fillStyle="rgba(255,255,255,0.4)";
+    for(let x=24;x<512;x+=48) for(let y=24;y<512;y+=48){
+      ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill();
     }
-}
-
-function resetShadow() {
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-}
-
-function addToGallery() {
-    const url = canvas.toDataURL("image/png");
-    galleryUrls.unshift(url);
-    if (galleryUrls.length > GALLERY_MAX) galleryUrls.pop();
-
-    const el = document.getElementById("gallery");
-    el.innerHTML = "";
-    galleryUrls.forEach(u => {
-        const img = document.createElement("img");
-        img.src = u;
-        img.className = "gallery-item";
-        img.title = "클릭하면 복원";
-        img.addEventListener("click", () => {
-            const image = new Image();
-            image.onload = () => { ctx.clearRect(0, 0, 512, 512); ctx.drawImage(image, 0, 0, 512, 512); };
-            image.src = u;
-        });
-        el.appendChild(img);
+    return;
+  }
+  if (bg==="sky"){
+    const g=ctx.createLinearGradient(0,0,0,512);
+    g.addColorStop(0,"#E3F2FD"); g.addColorStop(1,"#BBDEFB");
+    ctx.fillStyle=g; ctx.fillRect(0,0,512,512);
+    [[80,80,60],[380,120,45],[220,48,36]].forEach(([x,y,r])=>{
+      ctx.fillStyle="rgba(255,255,255,0.72)";
+      ctx.beginPath();
+      ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.arc(x+r*0.8,y-r*0.2,r*0.75,0,Math.PI*2);
+      ctx.arc(x+r*1.65,y,r*0.65,0,Math.PI*2);
+      ctx.fill();
     });
+  }
 }
 
-function generateIcon() {
-    const c1 = themedColor();
-    const c2 = themedColor();
-    const textColor = themedColor();
-    const text = getText();
-    const cfg = SHAPES[shape];
-    const fs = text.length > 1 ? Math.round(cfg.fontSize * 0.62) : cfg.fontSize;
-
-    ctx.clearRect(0, 0, 512, 512);
-
-    if (activeEffects.has("glow")) {
-        ctx.shadowBlur = 50;
-        ctx.shadowColor = c2;
-    } else if (activeEffects.has("shadow")) {
-        ctx.shadowBlur = 22;
-        ctx.shadowOffsetX = 18;
-        ctx.shadowOffsetY = 18;
-        ctx.shadowColor = "rgba(0,0,0,0.55)";
-    }
-
-    if (style === "solid") {
-        ctx.fillStyle = c1;
-        drawShape(); ctx.fill();
-    } else if (style === "gradient") {
-        const grad = ctx.createLinearGradient(36, 36, 476, 476);
-        grad.addColorStop(0, c1);
-        grad.addColorStop(1, c2);
-        ctx.fillStyle = grad;
-        drawShape(); ctx.fill();
-    } else if (style === "twotone") {
-        ctx.fillStyle = c1; drawShape(); ctx.fill();
-        ctx.save();
-        ctx.beginPath(); ctx.rect(256, 0, 512, 512); ctx.clip();
-        ctx.fillStyle = c2; drawShape(); ctx.fill();
-        ctx.restore();
-    }
-
-    resetShadow();
-
-    if (activeEffects.has("outline")) {
-        ctx.strokeStyle = textColor;
-        ctx.lineWidth = 14;
-        ctx.lineJoin = "round";
-        drawShape(); ctx.stroke();
-    }
-
-    ctx.fillStyle = textColor;
-    ctx.font = `bold ${fs}px Arial`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(text, 256, cfg.textY);
-
-    addToGallery();
+function drawChar(stamp, face, x, y, size, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size/120, size/120);
+  ctx.shadowColor="rgba(0,0,0,0.18)"; ctx.shadowBlur=14; ctx.shadowOffsetX=3; ctx.shadowOffsetY=6;
+  if (stamp==="cat")    drawCat(color);
+  else if (stamp==="bear")   drawBear(color);
+  else if (stamp==="rabbit") drawRabbit(color);
+  else if (stamp==="dog")    drawDog(color);
+  else if (stamp==="chick")  drawChick(color);
+  ctx.shadowBlur=0; ctx.shadowOffsetX=0; ctx.shadowOffsetY=0;
+  drawFace(face, stamp);
+  ctx.restore();
 }
 
-function restartTimer() {
-    clearInterval(timer);
-    if (!paused) timer = setInterval(generateIcon, intervalMs);
+function drawCat(c) {
+  ctx.beginPath(); ctx.moveTo(-72,-50); ctx.lineTo(-48,-98); ctx.lineTo(-14,-56); ctx.closePath(); stkfill(c);
+  ctx.beginPath(); ctx.moveTo(72,-50); ctx.lineTo(48,-98); ctx.lineTo(14,-56); ctx.closePath(); stkfill(c);
+  ctx.beginPath(); ctx.moveTo(-64,-54); ctx.lineTo(-48,-88); ctx.lineTo(-20,-58); ctx.closePath();
+  ctx.fillStyle=lighten(c,60); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(64,-54); ctx.lineTo(48,-88); ctx.lineTo(20,-58); ctx.closePath();
+  ctx.fillStyle=lighten(c,60); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0,18,80,85,0,0,Math.PI*2); stkfill(c);
+  ctx.beginPath(); ctx.ellipse(0,38,42,50,0,0,Math.PI*2); ctx.fillStyle=lighten(c,55); ctx.fill();
 }
 
-function handleShapeClick(e) {
-    const t = e.target.closest(".opt[data-shape]");
-    if (!t) return;
-    document.querySelectorAll(".opt[data-shape]").forEach(b => b.classList.remove("active"));
-    t.classList.add("active");
-    shape = t.dataset.shape;
-    generateIcon();
+function drawBear(c) {
+  ctx.beginPath(); ctx.arc(-65,-68,30,0,Math.PI*2); stkfill(c);
+  ctx.beginPath(); ctx.arc(65,-68,30,0,Math.PI*2); stkfill(c);
+  ctx.beginPath(); ctx.arc(-65,-68,18,0,Math.PI*2); ctx.fillStyle=lighten(c,50); ctx.fill();
+  ctx.beginPath(); ctx.arc(65,-68,18,0,Math.PI*2); ctx.fillStyle=lighten(c,50); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0,22,85,88,0,0,Math.PI*2); stkfill(c);
+  ctx.beginPath(); ctx.ellipse(0,16,40,30,0,0,Math.PI*2); ctx.fillStyle=lighten(c,58); ctx.fill();
+  ctx.strokeStyle="rgba(255,255,255,0.5)"; ctx.lineWidth=3; ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0,44,44,46,0,0,Math.PI*2); ctx.fillStyle=lighten(c,50); ctx.fill();
 }
 
-document.getElementById("shapeGroup").addEventListener("click", handleShapeClick);
-document.getElementById("animalGroup").addEventListener("click", handleShapeClick);
+function drawRabbit(c) {
+  ctx.beginPath(); ctx.ellipse(-36,-108,20,54,-0.15,0,Math.PI*2); stkfill(c);
+  ctx.beginPath(); ctx.ellipse(36,-108,20,54,0.15,0,Math.PI*2); stkfill(c);
+  ctx.beginPath(); ctx.ellipse(-36,-108,10,38,-0.15,0,Math.PI*2); ctx.fillStyle="#FFB3C6"; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(36,-108,10,38,0.15,0,Math.PI*2); ctx.fillStyle="#FFB3C6"; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0,18,80,85,0,0,Math.PI*2); stkfill(c);
+  ctx.beginPath(); ctx.ellipse(0,40,42,50,0,0,Math.PI*2); ctx.fillStyle=lighten(c,58); ctx.fill();
+}
 
-document.getElementById("themeGroup").addEventListener("click", e => {
-    const t = e.target.closest(".opt[data-theme]");
-    if (!t) return;
-    document.querySelectorAll(".opt[data-theme]").forEach(b => b.classList.remove("active"));
-    t.classList.add("active");
-    colorTheme = t.dataset.theme;
-    generateIcon();
-});
+function drawDog(c) {
+  ctx.beginPath();
+  ctx.moveTo(-82,-30); ctx.bezierCurveTo(-108,-18,-112,44,-86,62); ctx.bezierCurveTo(-68,72,-56,60,-58,38); ctx.bezierCurveTo(-56,-8,-64,-40,-82,-30); ctx.closePath();
+  stkfill(darken(c,22));
+  ctx.beginPath();
+  ctx.moveTo(82,-30); ctx.bezierCurveTo(108,-18,112,44,86,62); ctx.bezierCurveTo(68,72,56,60,58,38); ctx.bezierCurveTo(56,-8,64,-40,82,-30); ctx.closePath();
+  stkfill(darken(c,22));
+  ctx.beginPath(); ctx.ellipse(0,18,82,85,0,0,Math.PI*2); stkfill(c);
+  ctx.beginPath(); ctx.ellipse(0,18,40,30,0,0,Math.PI*2); ctx.fillStyle=lighten(c,55); ctx.fill();
+  ctx.strokeStyle="rgba(255,255,255,0.4)"; ctx.lineWidth=3; ctx.stroke();
+}
 
-document.getElementById("styleGroup").addEventListener("click", e => {
-    const t = e.target.closest(".opt[data-style]");
-    if (!t) return;
-    document.querySelectorAll(".opt[data-style]").forEach(b => b.classList.remove("active"));
-    t.classList.add("active");
-    style = t.dataset.style;
-    generateIcon();
-});
+function drawChick(c) {
+  const yc = c||"#FFD700";
+  ctx.beginPath(); ctx.ellipse(0,28,80,80,0,0,Math.PI*2); stkfill(yc);
+  ctx.beginPath(); ctx.arc(0,-55,58,0,Math.PI*2); stkfill(yc);
+  ctx.beginPath(); ctx.ellipse(-62,24,28,48,-0.4,0,Math.PI*2); ctx.fillStyle=darken(yc,22); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(62,24,28,48,0.4,0,Math.PI*2); ctx.fillStyle=darken(yc,22); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-13,-50); ctx.lineTo(13,-50); ctx.lineTo(0,-34); ctx.closePath(); ctx.fillStyle="#FF8C00"; ctx.fill();
+}
 
-document.getElementById("effectGroup").addEventListener("click", e => {
-    const t = e.target.closest(".opt[data-effect]");
-    if (!t) return;
-    const fx = t.dataset.effect;
-    if (activeEffects.has(fx)) {
-        activeEffects.delete(fx);
-        t.classList.remove("active");
-    } else {
-        activeEffects.add(fx);
-        t.classList.add("active");
+function drawFace(face, stamp) {
+  let ex=28, ey=-32, ny=-6;
+  if (stamp==="bear")   { ey=-36; ny=6; }
+  if (stamp==="rabbit") { ey=-36; }
+  if (stamp==="dog")    { ey=-36; }
+  if (stamp==="chick")  { ey=-62; ex=22; ny=-44; }
+
+  ctx.lineWidth=5; ctx.lineCap="round";
+
+  if (face==="love") {
+    miniHeart(-ex, ey-2, 15); miniHeart(ex, ey-2, 15);
+  } else if (face==="happy") {
+    ctx.strokeStyle="#333"; ctx.lineWidth=5;
+    ctx.beginPath(); ctx.arc(-ex,ey,10,Math.PI,0,true); ctx.stroke();
+    ctx.beginPath(); ctx.arc(ex,ey,10,Math.PI,0,true); ctx.stroke();
+  } else if (face==="sad") {
+    ctx.fillStyle="#444";
+    ctx.beginPath(); ctx.ellipse(-ex,ey,10,7,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(ex,ey,10,7,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle="#444"; ctx.lineWidth=4;
+    ctx.beginPath(); ctx.moveTo(-ex-14,ey-14); ctx.lineTo(-ex+6,ey-7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ex+14,ey-14); ctx.lineTo(ex-6,ey-7); ctx.stroke();
+  } else if (face==="surprised") {
+    ctx.fillStyle="#333";
+    ctx.beginPath(); ctx.arc(-ex,ey,12,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ex,ey,12,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="white";
+    ctx.beginPath(); ctx.arc(-ex-3,ey-4,4,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ex-3,ey-4,4,0,Math.PI*2); ctx.fill();
+  } else {
+    ctx.fillStyle="#333";
+    ctx.beginPath(); ctx.arc(-ex,ey,10,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ex,ey,10,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="white";
+    ctx.beginPath(); ctx.arc(-ex-3,ey-3,3.5,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ex-3,ey-3,3.5,0,Math.PI*2); ctx.fill();
+  }
+
+  if (stamp!=="chick") {
+    ctx.fillStyle="#FFB3BA";
+    ctx.beginPath(); ctx.arc(0,ny,6,0,Math.PI*2); ctx.fill();
+  }
+
+  ctx.strokeStyle="#333"; ctx.lineWidth=4; ctx.lineCap="round";
+  if (face==="sad") {
+    ctx.beginPath(); ctx.arc(0,ny+20,12,0,Math.PI,true); ctx.stroke();
+    ctx.fillStyle="#87CEEB";
+    ctx.beginPath(); ctx.ellipse(-ex+8,ey+18,5,7,0.2,0,Math.PI*2); ctx.fill();
+  } else if (face==="surprised") {
+    ctx.beginPath(); ctx.arc(0,ny+18,11,0,Math.PI*2); ctx.stroke();
+  } else if (face==="happy") {
+    ctx.beginPath(); ctx.arc(0,ny+13,15,0.1,Math.PI-0.1); ctx.stroke();
+    ctx.fillStyle="rgba(255,120,120,0.4)";
+    ctx.beginPath(); ctx.ellipse(-44,ny+14,22,13,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(44,ny+14,22,13,0,0,Math.PI*2); ctx.fill();
+    return;
+  } else {
+    ctx.beginPath(); ctx.arc(0,ny+13,13,0.1,Math.PI-0.1); ctx.stroke();
+  }
+
+  ctx.fillStyle="rgba(255,120,120,0.35)";
+  ctx.beginPath(); ctx.ellipse(-42,ny+12,18,11,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(42,ny+12,18,11,0,0,Math.PI*2); ctx.fill();
+}
+
+function miniHeart(x, y, r) {
+  ctx.fillStyle="#FF1744";
+  ctx.beginPath();
+  ctx.moveTo(x, y+r*0.35);
+  ctx.bezierCurveTo(x-r*1.1,y-r*0.5, x-r*1.5,y+r*0.45, x,y+r*1.1);
+  ctx.bezierCurveTo(x+r*1.5,y+r*0.45, x+r*1.1,y-r*0.5, x,y+r*0.35);
+  ctx.fill();
+}
+
+function drawDeco(stamp, x, y, size, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size/90, size/90);
+  ctx.shadowColor="rgba(0,0,0,0.15)"; ctx.shadowBlur=8; ctx.shadowOffsetX=2; ctx.shadowOffsetY=3;
+  if (stamp==="heart")    drawHeart(color);
+  else if (stamp==="star")     drawStar(color);
+  else if (stamp==="balloon")  drawBalloon(color);
+  else if (stamp==="cake")     drawCake(color);
+  else if (stamp==="confetti") drawConfetti(x, y);
+  else if (stamp==="flower")   drawFlower(color);
+  else if (stamp==="sparkle")  drawSparkle(color);
+  else if (stamp==="ribbon")   drawRibbon(color);
+  else if (stamp==="bubble")   drawBubble(color);
+  else if (stamp==="crown")    drawCrown(color);
+  ctx.shadowBlur=0; ctx.shadowOffsetX=0; ctx.shadowOffsetY=0;
+  ctx.restore();
+}
+
+function drawHeart(c) {
+  ctx.beginPath();
+  ctx.moveTo(0,22); ctx.bezierCurveTo(-70,-30,-88,36,0,80); ctx.bezierCurveTo(88,36,70,-30,0,22);
+  ctx.fillStyle=c||"#FF4081"; ctx.strokeStyle="#fff"; ctx.lineWidth=5; ctx.stroke(); ctx.fill();
+  ctx.fillStyle="rgba(255,255,255,0.35)"; ctx.beginPath(); ctx.ellipse(-22,-12,14,8,-0.5,0,Math.PI*2); ctx.fill();
+}
+
+function drawStar(c) {
+  ctx.beginPath();
+  for(let i=0;i<10;i++){
+    const a=(i/10)*Math.PI*2-Math.PI/2;
+    const r=i%2===0?62:26;
+    i===0?ctx.moveTo(r*Math.cos(a),r*Math.sin(a)):ctx.lineTo(r*Math.cos(a),r*Math.sin(a));
+  }
+  ctx.closePath();
+  ctx.fillStyle=c||"#FFD700"; ctx.strokeStyle="#fff"; ctx.lineWidth=5; ctx.stroke(); ctx.fill();
+  ctx.fillStyle="rgba(255,255,255,0.4)"; ctx.beginPath(); ctx.ellipse(-14,-28,10,7,-0.4,0,Math.PI*2); ctx.fill();
+}
+
+function drawBalloon(c) {
+  ctx.beginPath(); ctx.ellipse(0,-18,42,54,0,0,Math.PI*2);
+  ctx.fillStyle=c||"#FF6B6B"; ctx.strokeStyle="#fff"; ctx.lineWidth=5; ctx.stroke(); ctx.fill();
+  ctx.fillStyle="rgba(255,255,255,0.4)"; ctx.beginPath(); ctx.ellipse(-14,-38,10,16,-0.3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(0,36,6,0,Math.PI*2); ctx.fillStyle=darken(c||"#FF6B6B",30); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0,42); ctx.quadraticCurveTo(10,62,0,78);
+  ctx.strokeStyle=darken(c||"#FF6B6B",30); ctx.lineWidth=2.5; ctx.stroke();
+}
+
+function drawCake(c) {
+  const base=c||"#FF8FAB";
+  ctx.beginPath(); rrect(-44,8,88,52,10); ctx.fillStyle=base; ctx.strokeStyle="#fff"; ctx.lineWidth=4; ctx.stroke(); ctx.fill();
+  ctx.beginPath(); rrect(-30,-28,60,38,8); ctx.fillStyle=lighten(base,28); ctx.stroke(); ctx.fill();
+  ctx.fillStyle="#fff";
+  for(let i=-2;i<=2;i++){ctx.beginPath();ctx.arc(i*20,8,8,0,Math.PI);ctx.fill();}
+  const ccs=["#FF5252","#FFD740","#64FFDA"];
+  for(let i=-1;i<=1;i++){
+    ctx.fillStyle=ccs[i+1]; ctx.fillRect(i*18-3,-52,7,26);
+    ctx.beginPath(); ctx.ellipse(i*18,-56,4,7,0,0,Math.PI*2); ctx.fillStyle="#FFD740"; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(i*18,-56,2.5,4.5,0,0,Math.PI*2); ctx.fillStyle="#FF6D00"; ctx.fill();
+  }
+}
+
+function drawConfetti(ox, oy) {
+  const cols=["#FF5252","#FFD740","#64FFDA","#E040FB","#40C4FF","#69F0AE","#FF8FAB"];
+  for(let i=0;i<14;i++){
+    const a=(i/14)*Math.PI*2;
+    const d=28+((ox*17+oy*13+i*31)%25);
+    const cx=d*Math.cos(a), cy=d*Math.sin(a);
+    ctx.fillStyle=cols[i%cols.length];
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(a*2.3);
+    if(i%3===0){ctx.fillRect(-5,-3,10,6);}
+    else if(i%3===1){ctx.beginPath();ctx.arc(0,0,5,0,Math.PI*2);ctx.fill();}
+    else{ctx.beginPath();ctx.moveTo(0,-6);ctx.lineTo(5,6);ctx.lineTo(-5,6);ctx.closePath();ctx.fill();}
+    ctx.restore();
+  }
+}
+
+function drawFlower(c) {
+  for(let i=0;i<6;i++){
+    const a=(i/6)*Math.PI*2;
+    ctx.beginPath(); ctx.ellipse(28*Math.cos(a),28*Math.sin(a),18,10,a,0,Math.PI*2);
+    ctx.fillStyle=c||"#FF8FAB"; ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(0,0,22,0,Math.PI*2);
+  ctx.fillStyle="#FFD700"; ctx.strokeStyle="#fff"; ctx.lineWidth=3; ctx.stroke(); ctx.fill();
+  ctx.fillStyle="rgba(255,255,255,0.45)"; ctx.beginPath(); ctx.arc(-6,-6,8,0,Math.PI*2); ctx.fill();
+}
+
+function drawSparkle(c) {
+  ctx.beginPath();
+  for(let i=0;i<8;i++){
+    const a=(i/8)*Math.PI*2-Math.PI/8;
+    const r=i%2===0?62:22;
+    i===0?ctx.moveTo(r*Math.cos(a),r*Math.sin(a)):ctx.lineTo(r*Math.cos(a),r*Math.sin(a));
+  }
+  ctx.closePath(); ctx.fillStyle=c||"#FFD700"; ctx.strokeStyle="#fff"; ctx.lineWidth=4; ctx.stroke(); ctx.fill();
+}
+
+function drawRibbon(c) {
+  const col=c||"#FF8FAB";
+  ctx.beginPath(); ctx.moveTo(-55,-14); ctx.lineTo(-14,-14); ctx.lineTo(-14,14); ctx.lineTo(-55,14); ctx.lineTo(-70,0); ctx.closePath(); ctx.fillStyle=col; ctx.strokeStyle="#fff"; ctx.lineWidth=4; ctx.stroke(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(55,-14); ctx.lineTo(14,-14); ctx.lineTo(14,14); ctx.lineTo(55,14); ctx.lineTo(70,0); ctx.closePath(); ctx.fillStyle=col; ctx.stroke(); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-32,-18,20,13,-0.5,0,Math.PI*2); ctx.fillStyle=darken(col,12); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(32,-18,20,13,0.5,0,Math.PI*2); ctx.fillStyle=darken(col,12); ctx.fill();
+  ctx.beginPath(); ctx.arc(0,0,18,0,Math.PI*2); ctx.fillStyle=darken(col,18); ctx.stroke(); ctx.fill();
+}
+
+function drawBubble(c) {
+  ctx.beginPath(); rrect(-58,-38,116,68,18);
+  ctx.fillStyle="#FFFFFF"; ctx.strokeStyle=c||"#CCCCCC"; ctx.lineWidth=4; ctx.stroke(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-18,30); ctx.lineTo(-32,58); ctx.lineTo(8,30); ctx.closePath();
+  ctx.fillStyle="#FFFFFF"; ctx.stroke(); ctx.fill();
+}
+
+function drawCrown(c) {
+  const col=c||"#FFD700";
+  ctx.beginPath();
+  ctx.moveTo(-55,28); ctx.lineTo(-55,-18); ctx.lineTo(-26,10); ctx.lineTo(0,-42); ctx.lineTo(26,10); ctx.lineTo(55,-18); ctx.lineTo(55,28); ctx.closePath();
+  ctx.fillStyle=col; ctx.strokeStyle="#fff"; ctx.lineWidth=5; ctx.stroke(); ctx.fill();
+  [[-22,12,"#FF5252"],[0,12,"#40C4FF"],[22,12,"#69F0AE"]].forEach(([x,y,gc])=>{
+    ctx.beginPath(); ctx.arc(x,y,7,0,Math.PI*2); ctx.fillStyle=gc; ctx.fill();
+  });
+}
+
+function drawTextBanner(text, x, y, size, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size/90, size/90);
+  const col=color||"#FF8FAB";
+  const tw=Math.max(text.length*16+44, 88);
+  ctx.beginPath(); rrect(-tw/2,-26,tw,52,14);
+  ctx.fillStyle=col; ctx.strokeStyle="#fff"; ctx.lineWidth=5; ctx.stroke(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-tw/2-22,-14); ctx.lineTo(-tw/2,-14); ctx.lineTo(-tw/2,14); ctx.lineTo(-tw/2-22,14); ctx.lineTo(-tw/2-32,0); ctx.closePath();
+  ctx.fillStyle=darken(col,22); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(tw/2+22,-14); ctx.lineTo(tw/2,-14); ctx.lineTo(tw/2,14); ctx.lineTo(tw/2+22,14); ctx.lineTo(tw/2+32,0); ctx.closePath();
+  ctx.fillStyle=darken(col,22); ctx.fill();
+  ctx.fillStyle="#fff"; ctx.font="bold 26px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.shadowColor="rgba(0,0,0,0.2)"; ctx.shadowBlur=3; ctx.shadowOffsetY=1;
+  ctx.fillText(text,0,0);
+  ctx.restore();
+}
+
+function redraw() {
+  drawBg();
+  layers.forEach(l => {
+    if (l.kind==="char")      drawChar(l.stamp,l.face,l.x,l.y,l.size,l.color);
+    else if (l.kind==="deco") drawDeco(l.stamp,l.x,l.y,l.size,l.color);
+    else if (l.kind==="text") drawTextBanner(l.text,l.x,l.y,l.size,l.color);
+  });
+}
+
+function saveUndo() {
+  undoStack.push(JSON.stringify(layers));
+  if (undoStack.length>UNDO_MAX) undoStack.shift();
+}
+
+canvas.addEventListener("click", e => {
+  const r=canvas.getBoundingClientRect();
+  const cx=(e.clientX-r.left)*(512/r.width);
+  const cy=(e.clientY-r.top)*(512/r.height);
+
+  if (mode==="erase") {
+    for(let i=layers.length-1;i>=0;i--){
+      if (Math.hypot(layers[i].x-cx,layers[i].y-cy)<layers[i].size*0.75){
+        saveUndo(); layers.splice(i,1); redraw(); return;
+      }
     }
-    generateIcon();
+    return;
+  }
+
+  saveUndo();
+  if (mode==="stamp") {
+    if (charStamps.has(currentStamp))
+      layers.push({kind:"char",stamp:currentStamp,face:currentFace,x:cx,y:cy,size:stampSize,color:currentColor});
+    else if (decoStamps.has(currentStamp))
+      layers.push({kind:"deco",stamp:currentStamp,x:cx,y:cy,size:stampSize,color:currentColor});
+  } else if (mode==="text") {
+    const t=document.getElementById("textInput").value||"HBD";
+    layers.push({kind:"text",text:t,x:cx,y:cy,size:stampSize,color:currentColor});
+  }
+  redraw();
 });
 
-textInput.addEventListener("input", () => generateIcon());
-
-document.getElementById("btnPause").addEventListener("click", () => {
-    paused = !paused;
-    document.getElementById("btnPause").textContent = paused ? "▶ 재생" : "⏸ 일시정지";
-    restartTimer();
+document.querySelectorAll(".mode-btn").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll(".mode-btn").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active"); mode=b.dataset.mode;
+    canvas.style.cursor=mode==="erase"?"not-allowed":mode==="text"?"text":"crosshair";
+  });
 });
 
-document.getElementById("btnOnce").addEventListener("click", () => generateIcon());
+function selectStamp(el) {
+  document.querySelectorAll(".stamp-btn[data-stamp]").forEach(b=>b.classList.remove("sel"));
+  el.classList.add("sel"); currentStamp=el.dataset.stamp;
+  mode="stamp";
+  document.querySelectorAll(".mode-btn").forEach(b=>b.classList.toggle("active",b.dataset.mode==="stamp"));
+  canvas.style.cursor="crosshair";
+}
 
-document.getElementById("btnDownload").addEventListener("click", () => {
-    const a = document.createElement("a");
-    a.download = "icon.png";
-    a.href = canvas.toDataURL("image/png");
-    a.click();
+document.getElementById("charGrid").addEventListener("click",e=>{
+  const t=e.target.closest("[data-stamp]"); if(t) selectStamp(t);
+});
+document.getElementById("decoGrid").addEventListener("click",e=>{
+  const t=e.target.closest("[data-stamp]"); if(t) selectStamp(t);
 });
 
-document.getElementById("speedRange").addEventListener("input", e => {
-    intervalMs = +e.target.value;
-    document.getElementById("speedLabel").textContent = (intervalMs / 1000).toFixed(1) + "초";
-    restartTimer();
+document.getElementById("faceGrid").addEventListener("click",e=>{
+  const t=e.target.closest("[data-face]"); if(!t) return;
+  document.querySelectorAll("[data-face]").forEach(b=>b.classList.remove("sel"));
+  t.classList.add("sel"); currentFace=t.dataset.face;
 });
 
-generateIcon();
-timer = setInterval(generateIcon, intervalMs);
+document.getElementById("bgRow").addEventListener("click",e=>{
+  const t=e.target.closest(".bg-btn"); if(!t) return;
+  document.querySelectorAll(".bg-btn").forEach(b=>b.classList.remove("active"));
+  t.classList.add("active"); bg=t.dataset.bg; redraw();
+});
+
+document.getElementById("sizeRange").addEventListener("input",e=>{ stampSize=+e.target.value; });
+
+document.getElementById("btnUndo").addEventListener("click",()=>{
+  if(!undoStack.length) return;
+  layers=JSON.parse(undoStack.pop()); redraw();
+});
+
+document.getElementById("btnClear").addEventListener("click",()=>{ saveUndo(); layers=[]; redraw(); });
+
+document.getElementById("btnSave").addEventListener("click",()=>{
+  const url=canvas.toDataURL("image/png");
+  galUrls.unshift(url); if(galUrls.length>5) galUrls.pop();
+  const el=document.getElementById("gallery"); el.innerHTML="";
+  galUrls.forEach(u=>{
+    const img=document.createElement("img"); img.src=u; img.className="gal-img";
+    img.addEventListener("click",()=>{ const a=document.createElement("a"); a.download="emoticon.png"; a.href=u; a.click(); });
+    el.appendChild(img);
+  });
+  const a=document.createElement("a"); a.download="emoticon.png"; a.href=url; a.click();
+});
+
+redraw();
 </script>
-
 </body>
 </html>
