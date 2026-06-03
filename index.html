@@ -47,7 +47,7 @@
     .option-group{ display:flex; gap:6px; flex-wrap:wrap; }
 
     .opt{
-        flex:1; min-width:60px; padding:7px 4px;
+        flex:1; min-width:56px; padding:7px 4px;
         border:2px solid #444; border-radius:8px;
         background:transparent; color:#aaa;
         font-size:0.78rem; cursor:pointer; text-align:center;
@@ -56,7 +56,7 @@
     .opt.active{ border-color:#fff; color:#fff; background:#222; }
 
     .text-input{
-        flex:1; padding:9px 12px;
+        width:100%; padding:9px 12px;
         border:2px solid #444; border-radius:8px;
         background:#222; color:white;
         font-size:1.1rem; font-weight:bold;
@@ -75,8 +75,25 @@
 
     .section-title{
         font-size:0.72rem; color:#666;
-        text-transform:uppercase; letter-spacing:1px; margin-bottom:2px;
+        text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;
     }
+
+    .gallery{
+        display:grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap:6px;
+    }
+    .gallery-item{
+        aspect-ratio:1;
+        border-radius:8px;
+        cursor:pointer;
+        opacity:0.65;
+        transition:opacity 0.15s, transform 0.15s;
+        object-fit:cover;
+        width:100%;
+        border:2px solid transparent;
+    }
+    .gallery-item:hover{ opacity:1; transform:scale(1.08); border-color:#fff; }
 </style>
 </head>
 <body>
@@ -119,6 +136,18 @@
     </div>
 
     <div>
+        <div class="section-title">색상 테마</div>
+        <div class="option-group" id="themeGroup">
+            <button class="opt active" data-theme="random">랜덤</button>
+            <button class="opt" data-theme="warm">따뜻한</button>
+            <button class="opt" data-theme="cool">차가운</button>
+            <button class="opt" data-theme="pastel">파스텔</button>
+            <button class="opt" data-theme="dark">다크</button>
+            <button class="opt" data-theme="neon">네온</button>
+        </div>
+    </div>
+
+    <div>
         <div class="section-title">스타일</div>
         <div class="option-group" id="styleGroup">
             <button class="opt active" data-style="solid">단색</button>
@@ -144,6 +173,11 @@
         <input type="range" id="speedRange" min="200" max="3000" step="100" value="1000">
     </div>
 
+    <div>
+        <div class="section-title">최근 생성 (클릭하면 복원)</div>
+        <div class="gallery" id="gallery"></div>
+    </div>
+
 </div>
 
 <script>
@@ -167,22 +201,41 @@ const SHAPES = {
 
 let shape = "circle";
 let style = "solid";
+let colorTheme = "random";
 let intervalMs = 1000;
 let paused = false;
 let timer = null;
 const activeEffects = new Set();
+const galleryUrls = [];
+const GALLERY_MAX = 6;
 
-function randomColor() {
-    return "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0");
+function hslToHex(h, s, l) {
+    l /= 100;
+    const a = s * Math.min(l, 1 - l) / 100;
+    const f = n => {
+        const k = (n + h / 30) % 12;
+        const c = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * c).toString(16).padStart(2, "0");
+    };
+    return `#${f(0)}${f(8)}${f(4)}`;
 }
 
-function randomLetter() {
-    return letters[Math.floor(Math.random() * letters.length)];
+function rnd(a, b) { return a + Math.random() * (b - a); }
+
+function themedColor() {
+    switch (colorTheme) {
+        case "warm":   return hslToHex(rnd(0,   60),  rnd(65, 100), rnd(40, 65));
+        case "cool":   return hslToHex(rnd(180, 270), rnd(60, 100), rnd(35, 65));
+        case "pastel": return hslToHex(rnd(0,   360), rnd(35,  65), rnd(70, 88));
+        case "dark":   return hslToHex(rnd(0,   360), rnd(40,  80), rnd(12, 38));
+        case "neon":   return hslToHex(rnd(0,   360), rnd(90, 100), rnd(48, 65));
+        default:       return "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0");
+    }
 }
 
 function getText() {
     const v = textInput.value.trim().toUpperCase();
-    return v.length > 0 ? v : randomLetter();
+    return v.length > 0 ? v : letters[Math.floor(Math.random() * letters.length)];
 }
 
 function roundedRectPath(x, y, w, h, r) {
@@ -246,13 +299,33 @@ function resetShadow() {
     ctx.shadowOffsetY = 0;
 }
 
+function addToGallery() {
+    const url = canvas.toDataURL("image/png");
+    galleryUrls.unshift(url);
+    if (galleryUrls.length > GALLERY_MAX) galleryUrls.pop();
+
+    const el = document.getElementById("gallery");
+    el.innerHTML = "";
+    galleryUrls.forEach(u => {
+        const img = document.createElement("img");
+        img.src = u;
+        img.className = "gallery-item";
+        img.title = "클릭하면 복원";
+        img.addEventListener("click", () => {
+            const image = new Image();
+            image.onload = () => { ctx.clearRect(0, 0, 512, 512); ctx.drawImage(image, 0, 0, 512, 512); };
+            image.src = u;
+        });
+        el.appendChild(img);
+    });
+}
+
 function generateIcon() {
-    const c1 = randomColor();
-    const c2 = randomColor();
-    const textColor = randomColor();
+    const c1 = themedColor();
+    const c2 = themedColor();
+    const textColor = themedColor();
     const text = getText();
     const cfg = SHAPES[shape];
-
     const fs = text.length > 1 ? Math.round(cfg.fontSize * 0.62) : cfg.fontSize;
 
     ctx.clearRect(0, 0, 512, 512);
@@ -269,26 +342,18 @@ function generateIcon() {
 
     if (style === "solid") {
         ctx.fillStyle = c1;
-        drawShape();
-        ctx.fill();
+        drawShape(); ctx.fill();
     } else if (style === "gradient") {
         const grad = ctx.createLinearGradient(36, 36, 476, 476);
         grad.addColorStop(0, c1);
         grad.addColorStop(1, c2);
         ctx.fillStyle = grad;
-        drawShape();
-        ctx.fill();
+        drawShape(); ctx.fill();
     } else if (style === "twotone") {
-        ctx.fillStyle = c1;
-        drawShape();
-        ctx.fill();
+        ctx.fillStyle = c1; drawShape(); ctx.fill();
         ctx.save();
-        ctx.beginPath();
-        ctx.rect(256, 0, 512, 512);
-        ctx.clip();
-        ctx.fillStyle = c2;
-        drawShape();
-        ctx.fill();
+        ctx.beginPath(); ctx.rect(256, 0, 512, 512); ctx.clip();
+        ctx.fillStyle = c2; drawShape(); ctx.fill();
         ctx.restore();
     }
 
@@ -298,8 +363,7 @@ function generateIcon() {
         ctx.strokeStyle = textColor;
         ctx.lineWidth = 14;
         ctx.lineJoin = "round";
-        drawShape();
-        ctx.stroke();
+        drawShape(); ctx.stroke();
     }
 
     ctx.fillStyle = textColor;
@@ -307,6 +371,8 @@ function generateIcon() {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(text, 256, cfg.textY);
+
+    addToGallery();
 }
 
 function restartTimer() {
@@ -325,6 +391,15 @@ function handleShapeClick(e) {
 
 document.getElementById("shapeGroup").addEventListener("click", handleShapeClick);
 document.getElementById("animalGroup").addEventListener("click", handleShapeClick);
+
+document.getElementById("themeGroup").addEventListener("click", e => {
+    const t = e.target.closest(".opt[data-theme]");
+    if (!t) return;
+    document.querySelectorAll(".opt[data-theme]").forEach(b => b.classList.remove("active"));
+    t.classList.add("active");
+    colorTheme = t.dataset.theme;
+    generateIcon();
+});
 
 document.getElementById("styleGroup").addEventListener("click", e => {
     const t = e.target.closest(".opt[data-style]");
