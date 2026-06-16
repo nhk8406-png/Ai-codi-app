@@ -1,0 +1,199 @@
+/* Main Tamagotchi Device */
+.device {
+  width: 320px;
+  background: linear-gradient(160deg, #2a1f5f 0%, #1a1040 60%, #150d35 100%);
+  border-radius: 40px 40px 60px 60px;
+  box-shadow:
+    0 0 0 3px #4a3a8a,
+    0 0 0 6px #2a1f5f,
+    0 20px 60px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  padding: 20px 20px 28px;
+  position: relative;
+  user-select: none;
+}
+
+.device-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.device-ear {
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, #5a4aaa, #3a2a7a);
+  border-radius: 50%;
+  margin-top: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+  flex-shrink: 0;
+}
+
+.device-screen-border {
+  flex: 1;
+  background: linear-gradient(160deg, #1a1040, #0d0820);
+  border-radius: 20px;
+  padding: 4px;
+  box-shadow:
+    0 0 0 2px #3a2a7a,
+    inset 0 2px 8px rgba(0,0,0,0.6);
+}
+
+.device-screen {
+  background: linear-gradient(160deg, #0a1628 0%, #0d1f3c 100%);
+  border-radius: 16px;
+  padding: 12px;
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.device-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 20%, rgba(80, 120, 255, 0.05) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Screen header */
+.screen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(126, 207, 179, 0.15);
+}
+
+.title-text {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  color: #7ecfb3;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.sleep-indicator {
+  font-size: 16px;
+  animation: blink 2s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Message bubble */
+.message-bubble {
+  background: rgba(126, 207, 179, 0.12);
+  border: 1px solid rgba(126, 207, 179, 0.25);
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #a8e6cf;
+  text-align: center;
+  animation: fade-in 0.3s ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Device bottom */
+.device-bottom {
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.device-notch {
+  width: 60px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  margin: 0 auto 4px;
+}
+
+.device-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.reset-small {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  padding: 4px 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reset-small:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Game Over screen */
+.game-over {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 20px;
+}
+
+.game-over-icon {
+  font-size: 72px;
+  animation: float 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.game-over h2 {
+  font-family: 'Courier New', monospace;
+  font-size: 22px;
+  color: #ff6b6b;
+  letter-spacing: 3px;
+}
+
+.game-over p {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #9ab;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.restart-btn {
+  background: linear-gradient(135deg, #7ecfb3, #4a9f83);
+  border: none;
+  border-radius: 20px;
+  color: #0a1628;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  padding: 10px 28px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(126, 207, 179, 0.3);
+}
+
+.restart-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(126, 207, 179, 0.4);
+}

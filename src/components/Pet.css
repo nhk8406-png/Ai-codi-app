@@ -1,0 +1,145 @@
+.pet-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  min-height: 130px;
+}
+
+.stage-label {
+  font-size: 11px;
+  color: #7ecfb3;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.pet {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 90px;
+  height: 90px;
+}
+
+.pet-char {
+  font-size: 64px;
+  line-height: 1;
+  display: block;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+}
+
+/* Animations */
+@keyframes idle-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes happy-jump {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-14px) rotate(-5deg); }
+  75% { transform: translateY(-14px) rotate(5deg); }
+}
+
+@keyframes sad-droop {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(2px) rotate(2deg); }
+}
+
+@keyframes sick-wobble {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+@keyframes sleeping-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes zzz-float {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+  50% { opacity: 1; }
+  100% { opacity: 0; transform: translate(20px, -30px) scale(1.2); }
+}
+
+.pet--idle .pet-char {
+  animation: idle-bounce 2s ease-in-out infinite;
+}
+
+.pet--happy .pet-char {
+  animation: happy-jump 0.6s ease-in-out infinite;
+}
+
+.pet--sad .pet-char {
+  animation: sad-droop 2s ease-in-out infinite;
+}
+
+.pet--sick .pet-char {
+  animation: sick-wobble 0.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(100, 200, 50, 0.6));
+}
+
+.pet--sleeping .pet-char {
+  animation: sleeping-float 3s ease-in-out infinite;
+  filter: brightness(0.8);
+}
+
+.pet--dead .pet-char {
+  filter: grayscale(1) brightness(0.6);
+  transform: rotate(-90deg);
+}
+
+/* ZZZ bubbles */
+.zzz-container {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  pointer-events: none;
+}
+
+.zzz {
+  position: absolute;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  color: #a8d8f0;
+  animation: zzz-float 2s ease-in-out infinite;
+}
+
+.z1 { font-size: 12px; animation-delay: 0s; top: 0; right: 0; }
+.z2 { font-size: 15px; animation-delay: 0.7s; top: -10px; right: -8px; }
+.z3 { font-size: 18px; animation-delay: 1.4s; top: -20px; right: -15px; }
+
+/* Sick particles */
+.sick-particles {
+  position: absolute;
+  top: 0;
+  right: -10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  opacity: 0.8;
+  animation: sad-droop 1s ease-in-out infinite;
+}
+
+/* Poop row */
+.poop-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 140px;
+}
+
+.poop {
+  font-size: 18px;
+  animation: idle-bounce 1.5s ease-in-out infinite;
+}
+
+.poop:nth-child(2) { animation-delay: 0.3s; }
+.poop:nth-child(3) { animation-delay: 0.6s; }
+.poop:nth-child(4) { animation-delay: 0.9s; }
+.poop:nth-child(5) { animation-delay: 1.2s; }
