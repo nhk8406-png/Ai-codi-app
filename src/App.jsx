@@ -2,6 +2,7 @@ import { useGameState } from './hooks/useGameState';
 import Pet from './components/Pet';
 import StatsPanel from './components/StatsPanel';
 import ActionButtons from './components/ActionButtons';
+import InstallBanner from './components/InstallBanner';
 import './App.css';
 
 export default function App() {
@@ -9,6 +10,7 @@ export default function App() {
   const { isAlive, isDead, message, messageTimer, isSleeping } = state;
 
   return (
+    <>
     <div className="device">
       <div className="device-top">
         <div className="device-ear ear-left" />
@@ -65,5 +67,7 @@ export default function App() {
         </div>
       </div>
     </div>
+    <InstallBanner />
+    </>
   );
 }
