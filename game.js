@@ -339,14 +339,16 @@ let phase = 'title';
 let curLevel = 1;
 let score = 0, combo = 0, maxCombo = 0;
 let perfCnt = 0, goodCnt = 0, missCnt = 0;
+let hp = 100;
 let beatmap = null;
 let t0 = 0, pausedAt = 0, gameT = 0;
 let raf = null;
 
-const TRAVEL  = 1.55;
-const PERF_W  = 0.075;
-const GOOD_W  = 0.145;
+const TRAVEL   = 1.55;
+const PERF_W   = 0.075;
+const GOOD_W   = 0.145;
 const MISS_CUT = 0.22;
+const HP_DRAIN = 5;   // HP lost per miss (dead at 0 = 20 misses)
 
 let progress = JSON.parse(localStorage.getItem('rmProgress') || '{}');
 
@@ -487,6 +489,7 @@ function startGame(level) {
   initBgCanvas();
   curLevel = level;
   score = combo = maxCombo = perfCnt = goodCnt = missCnt = 0;
+  hp = 100;
   beatmap = buildBeatmap(level - 1);
   phase = 'countdown';
   rings = [];
@@ -502,6 +505,10 @@ function startGame(level) {
   $('fc-banner').style.display = 'none';
   $('milestone').style.display = 'none';
   $('beat-flash').className   = '';
+  const hpBar = $('hp-bar');
+  if (hpBar) { hpBar.style.width = '100%'; hpBar.classList.remove('danger'); }
+  const lrEl = $('live-rank');
+  if (lrEl) { lrEl.textContent = 'S'; lrEl.style.color = '#ffd93d'; }
 
   gameArea.querySelectorAll('.note,.judg,.pt').forEach(e => e.remove());
   showScreen('game');
@@ -632,42 +639,96 @@ function onLaneHit(lane) {
   if (combo > maxCombo) maxCombo = combo;
   const mult = 1 + Math.min(Math.floor(combo / 10) * 0.1, 1.5);
 
+  const timing = best.time - gameT; // positive = early, negative = late
+
   if (bestDiff <= PERF_W) {
     perfCnt++;
-    score += Math.round(100 * mult);
+    const pts = Math.round(100 * mult);
+    score += pts;
     showJudg('PERFECT!', 'perfect', lane);
+    showScorePopup(pts, 'perfect', lane);
     hitSfx('perfect');
   } else {
     goodCnt++;
-    score += Math.round(50 * mult);
-    showJudg('GOOD', 'good', lane);
+    const pts = Math.round(50 * mult);
+    score += pts;
+    showJudg('GOOD', 'good', lane, timing);
+    showScorePopup(pts, 'good', lane);
     hitSfx('good');
   }
 
   spawnParticles(lane);
   updateHUD();
+  updateLiveRank();
 }
 
 function registerMiss(lane) {
   missCnt++; combo = 0;
+  hp = Math.max(0, hp - HP_DRAIN);
   showJudg('MISS', 'miss', lane);
   hitSfx('miss');
   updateHUD();
+  updateHpBar();
+  updateLiveRank();
   // Screen shake
   const sg = $('screen-game');
   sg.classList.remove('shake');
   void sg.offsetWidth;
   sg.classList.add('shake');
+  // HP = 0 → early fail
+  if (hp <= 0) { setTimeout(() => endGame(), 300); }
+}
+
+// ════════════════════════════════════════════════
+//  HP & LIVE RANK
+// ════════════════════════════════════════════════
+function updateHpBar() {
+  const bar = $('hp-bar');
+  if (!bar) return;
+  bar.style.width = Math.max(hp, 0) + '%';
+  bar.classList.toggle('danger', hp <= 30);
+}
+
+function liveGrade() {
+  const tot = perfCnt + goodCnt + missCnt;
+  if (!tot) return { g: 'S', c: '#ffd93d' };
+  const acc = (perfCnt + goodCnt * 0.5) / tot * 100;
+  if (missCnt === 0 && acc >= 99) return { g: 'S', c: '#ffd93d' };
+  if (acc >= 90)  return { g: 'A', c: '#6bcb77' };
+  if (acc >= 75)  return { g: 'B', c: '#4d96ff' };
+  if (acc >= 60)  return { g: 'C', c: '#ffb347' };
+  return           { g: 'D', c: '#ff6b6b' };
+}
+
+function updateLiveRank() {
+  const { g, c } = liveGrade();
+  const el = $('live-rank');
+  if (el) { el.textContent = g; el.style.color = c; }
 }
 
 // ════════════════════════════════════════════════
 //  VISUAL FEEDBACK
 // ════════════════════════════════════════════════
-function showJudg(text, type, lane) {
+function showJudg(text, type, lane, timing = null) {
   const el = document.createElement('div');
   el.className = `judg judg-${type}`;
   el.textContent = text;
+  if (timing !== null && type === 'good') {
+    const hint = document.createElement('span');
+    hint.className = 'judg-timing';
+    hint.textContent = timing > 0 ? '▶ EARLY' : 'LATE ◀';
+    el.appendChild(hint);
+  }
   el.style.bottom = '92px';
+  laneEls[lane].appendChild(el);
+  el.addEventListener('animationend', () => el.remove());
+}
+
+function showScorePopup(pts, type, lane) {
+  const el = document.createElement('div');
+  el.className = `sc-pop sc-${type}`;
+  el.textContent = '+' + pts;
+  el.style.bottom = '88px';
   laneEls[lane].appendChild(el);
   el.addEventListener('animationend', () => el.remove());
 }
