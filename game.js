@@ -9,7 +9,7 @@ function initAC() {
   if (AC) return;
   AC = new (window.AudioContext || window.webkitAudioContext)();
   mGain = AC.createGain();
-  mGain.gain.value = 0.62;
+  mGain.gain.value = volMuted ? 0 : 0.62;
   mGain.connect(AC.destination);
 }
 function resumeAC() { if (AC && AC.state === 'suspended') AC.resume(); }
@@ -350,8 +350,9 @@ const GOOD_W   = 0.145;
 const MISS_CUT = 0.22;
 const HP_DRAIN = 5;   // HP lost per miss (dead at 0 = 20 misses)
 
-let speedMult = 1.0;   // note approach speed multiplier (higher = faster fall)
-let volMuted  = false;
+const _saved = JSON.parse(localStorage.getItem('rmSettings') || '{}');
+let speedMult = _saved.speed || 1.0;
+let volMuted  = !!_saved.muted;
 
 let progress = JSON.parse(localStorage.getItem('rmProgress') || '{}');
 
@@ -505,6 +506,7 @@ function startGame(level) {
   $('acc-disp').textContent   = '100%';
   $('progress-bar').style.width = '0%';
   $('pause-btn').textContent  = '일시정지';
+  $('pause-overlay').classList.remove('active');
   $('fc-banner').style.display = 'none';
   $('milestone').style.display = 'none';
   $('beat-flash').className   = '';
@@ -540,13 +542,23 @@ function togglePause() {
   if (phase === 'playing') {
     phase = 'paused'; pausedAt = performance.now();
     if (raf) cancelAnimationFrame(raf);
-    $('pause-btn').textContent = '계속';
+    $('po-lv').textContent = `LEVEL ${curLevel} — ${LV[curLevel-1].title}`;
+    $('pause-overlay').classList.add('active');
   } else if (phase === 'paused') {
     phase = 'playing'; t0 += performance.now() - pausedAt;
-    $('pause-btn').textContent = '일시정지';
+    $('pause-overlay').classList.remove('active');
     raf = requestAnimationFrame(gameLoop);
   }
 }
+
+window.pauseRetry = function() {
+  $('pause-overlay').classList.remove('active');
+  startGame(curLevel);
+};
+window.pauseQuit = function() {
+  $('pause-overlay').classList.remove('active');
+  window.goTitle();
+};
 
 // ════════════════════════════════════════════════
 //  GAME LOOP
@@ -894,6 +906,18 @@ function endGame() {
     setTimeout(() => nrEl.classList.add('show'), 950);
   }
 
+  // ── Level unlock notification ──
+  const unBan = $('unlock-banner');
+  if (unBan) {
+    unBan.textContent = '';
+    unBan.classList.remove('show');
+    if (!prev.cleared && cleared && curLevel < 10) {
+      unBan.textContent = `🔓 LEVEL ${curLevel + 1} UNLOCKED!`;
+      unBan.style.color = COLORS[curLevel];
+      setTimeout(() => { void unBan.offsetWidth; unBan.classList.add('show'); }, 900);
+    }
+  }
+
   // ── Confetti (FC or 3-star) ──
   if (isFC || stars >= 3) setTimeout(spawnConfetti, 650);
 }
@@ -941,6 +965,7 @@ function showGameOver() {
 // ════════════════════════════════════════════════
 window.setSpeed = function(v) {
   speedMult = v;
+  localStorage.setItem('rmSettings', JSON.stringify({ speed: speedMult, muted: volMuted }));
   document.querySelectorAll('.spd-btn').forEach(b => {
     b.classList.toggle('spd-active', parseFloat(b.dataset.v) === v);
   });
@@ -950,6 +975,7 @@ window.toggleVol = function() {
   initAC();
   volMuted = !volMuted;
   if (mGain) mGain.gain.value = volMuted ? 0 : 0.62;
+  localStorage.setItem('rmSettings', JSON.stringify({ speed: speedMult, muted: volMuted }));
   const btn = $('vol-btn');
   if (btn) { btn.textContent = volMuted ? '🔇' : '🔊'; btn.classList.toggle('muted', volMuted); }
 };
@@ -1013,3 +1039,10 @@ function buildBeatBars() {
 buildBeatBars();
 buildTitle();
 showScreen('title');
+
+// Apply persisted settings to title UI
+document.querySelectorAll('.spd-btn').forEach(b => {
+  b.classList.toggle('spd-active', parseFloat(b.dataset.v) === speedMult);
+});
+const _vb = $('vol-btn');
+if (_vb) { _vb.textContent = volMuted ? '🔇' : '🔊'; _vb.classList.toggle('muted', volMuted); }

@@ -233,6 +233,31 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
   100%{transform:translateX(var(--dx)) translateY(108vh) rotate(var(--rot));opacity:0;}
 }
 
+/* ── PAUSE OVERLAY ── */
+#pause-overlay{position:absolute;inset:0;background:rgba(4,4,14,.88);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;z-index:40;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);}
+#pause-overlay.active{display:flex;animation:pauseFadeIn .18s ease-out;}
+@keyframes pauseFadeIn{from{opacity:0;}to{opacity:1;}}
+.po-title{font-size:2.2rem;font-weight:900;letter-spacing:6px;color:#fff;}
+.po-lv{font-size:.68rem;color:rgba(255,255,255,.28);letter-spacing:3px;margin:-6px 0 10px;}
+.po-btns{display:flex;flex-direction:column;gap:10px;width:196px;}
+.po-btn{padding:15px 20px;border:none;border-radius:22px;font-size:.95rem;
+  font-weight:700;cursor:pointer;transition:transform .14s;touch-action:manipulation;}
+.po-btn:active{transform:scale(.91);}
+.po-resume{background:linear-gradient(135deg,#4d96ff,#6bcb77);color:#fff;}
+.po-retry{background:rgba(255,255,255,.1);color:#fff;}
+.po-quit{background:rgba(255,80,80,.1);color:#ff6b6b;border:1px solid rgba(255,107,107,.25);}
+
+/* ── LEVEL UNLOCK BANNER (result screen) ── */
+#unlock-banner{font-size:.8rem;font-weight:900;letter-spacing:2.5px;
+  margin-bottom:4px;opacity:0;min-height:1.3em;text-align:center;}
+#unlock-banner.show{animation:unlockSlide .5s ease-out both;}
+@keyframes unlockSlide{
+  from{transform:translateY(-8px) scale(.9);opacity:0;}
+  to{transform:none;opacity:1;}
+}
+
 /* ── SETTINGS ROW (title screen) ── */
 #settings-row{display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;}
 .setting-group{display:flex;align-items:center;gap:6px;}
@@ -329,6 +354,15 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
       <div class="lane-key">K</div>
     </div>
   </div>
+  <div id="pause-overlay">
+    <div class="po-title">PAUSED</div>
+    <div class="po-lv" id="po-lv">LEVEL 1</div>
+    <div class="po-btns">
+      <button class="po-btn po-resume" onclick="togglePause()">▶ 계속하기</button>
+      <button class="po-btn po-retry"  onclick="pauseRetry()">↺ 다시하기</button>
+      <button class="po-btn po-quit"   onclick="pauseQuit()">✕ 메뉴로</button>
+    </div>
+  </div>
   <div id="game-over-overlay">
     <div class="go-text">GAME OVER</div>
     <div class="go-sub">HP 소진</div>
@@ -339,6 +373,7 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
 
 <!-- ══ RESULT ══ -->
 <div id="screen-result" class="screen">
+  <div id="unlock-banner"></div>
   <div class="res-title" id="res-title">클리어!</div>
   <div class="res-lv" id="res-lv">LEVEL 1</div>
   <div class="res-stars" id="res-stars"></div>
