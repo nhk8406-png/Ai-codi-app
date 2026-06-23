@@ -290,6 +290,23 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
   100%{transform:translate(-50%,-70%) scale(.8);opacity:0;}
 }
 
+/* ── ACHIEVEMENTS ── */
+#ach-row{display:none;flex-wrap:wrap;gap:8px;justify-content:center;
+  margin-top:10px;max-width:360px;padding:0 10px;}
+.ach-badge{font-size:1.4rem;cursor:default;transition:transform .15s;
+  filter:drop-shadow(0 0 5px rgba(255,217,61,.35));}
+.ach-badge:hover{transform:scale(1.28);}
+.ach-popup{position:fixed;bottom:20px;right:16px;background:rgba(10,10,28,.97);
+  border:1px solid rgba(255,217,61,.22);border-radius:14px;padding:10px 14px;
+  display:flex;align-items:center;gap:10px;z-index:500;max-width:210px;
+  box-shadow:0 4px 28px rgba(0,0,0,.65);
+  animation:achIn .42s cubic-bezier(.15,1.4,.4,1) both;}
+.ach-popup.out{animation:achOut .38s ease-in forwards;}
+@keyframes achIn{from{transform:translateX(120px);opacity:0;}to{transform:none;opacity:1;}}
+@keyframes achOut{to{transform:translateX(50px);opacity:0;}}
+.ach-name{font-size:.82rem;font-weight:800;color:#ffd93d;line-height:1.2;}
+.ach-tag{font-size:.58rem;color:rgba(255,255,255,.32);letter-spacing:.8px;margin-top:2px;}
+
 /* ── LEVEL UNLOCK BANNER (result screen) ── */
 #unlock-banner{font-size:.8rem;font-weight:900;letter-spacing:2.5px;
   margin-bottom:4px;opacity:0;min-height:1.3em;text-align:center;}
@@ -354,6 +371,7 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
     <button id="vol-btn" onclick="toggleVol()">🔊</button>
   </div>
   <div class="level-grid" id="level-grid"></div>
+  <div id="ach-row"></div>
   <div class="hint">키보드: D &nbsp;F &nbsp;J &nbsp;K &nbsp;|&nbsp; 마우스 / 터치로도 플레이</div>
 </div>
 

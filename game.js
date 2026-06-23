@@ -357,6 +357,20 @@ let volMuted  = !!_saved.muted;
 
 let progress = JSON.parse(localStorage.getItem('rmProgress') || '{}');
 
+let achievements = new Set(JSON.parse(localStorage.getItem('rmAchievements') || '[]'));
+let achQueue = [], achTimer = null;
+
+const ACHIEVEMENTS = [
+  { id:'play1',    icon:'🎵', name:'첫 시작'     },
+  { id:'fever',    icon:'🔥', name:'피버!'        },
+  { id:'combo100', icon:'💯', name:'100 콤보'    },
+  { id:'stars3',   icon:'⭐', name:'별 세 개'    },
+  { id:'srank',    icon:'🏆', name:'S 랭크'      },
+  { id:'acc95',    icon:'🎯', name:'정밀한 타격'  },
+  { id:'speed2x',  icon:'⚡', name:'스피드 킬러'  },
+  { id:'master',   icon:'👑', name:'리듬 마스터'  },
+];
+
 // ════════════════════════════════════════════════
 //  DOM
 // ════════════════════════════════════════════════
@@ -484,6 +498,7 @@ function buildTitle() {
     }
     grid.appendChild(btn);
   }
+  buildAchievementBadges();
 }
 
 // ════════════════════════════════════════════════
@@ -491,6 +506,7 @@ function buildTitle() {
 // ════════════════════════════════════════════════
 function startGame(level) {
   initAC(); resumeAC();
+  unlockAchievement('play1');
   initBgCanvas();
   curLevel = level;
   score = combo = maxCombo = perfCnt = goodCnt = missCnt = 0;
@@ -615,6 +631,13 @@ function gameLoop(ts) {
     if (note.el) {
       const prog = 1 - until / travelTime;
       note.el.style.top = (prog * hz - 23) + 'px';
+      // Approach glow: brightens in the last 0.55s before hit zone
+      if (until > 0 && until < 0.55) {
+        const g = 1 - until / 0.55;
+        note.el.style.filter = `brightness(${(1 + g * 1.15).toFixed(2)})`;
+      } else if (note.el.style.filter) {
+        note.el.style.filter = '';
+      }
     }
 
     if (until < -MISS_CUT) {
@@ -802,6 +825,7 @@ function updateHUD() {
   // Fever mode threshold
   if (combo >= 50) triggerFever();
   else if (feverActive) clearFever();
+  if (combo === 100) unlockAchievement('combo100');
 
   // Milestone popup
   if (MILESTONES.includes(combo)) {
@@ -861,6 +885,13 @@ function endGame() {
   else { nb.style.display = 'none'; }
 
   clearFever();
+  if (cleared) {
+    if (stars >= 3)          unlockAchievement('stars3');
+    if (grade === 'S')       unlockAchievement('srank');
+    if (acc >= 95)           unlockAchievement('acc95');
+    if (speedMult >= 2)      unlockAchievement('speed2x');
+    if (curLevel === 10)     unlockAchievement('master');
+  }
 
   // Prep animated elements before screen switch
   $('res-score').textContent = '0';
@@ -933,6 +964,48 @@ function endGame() {
 }
 
 // ════════════════════════════════════════════════
+//  ACHIEVEMENTS
+// ════════════════════════════════════════════════
+function unlockAchievement(id) {
+  if (achievements.has(id)) return;
+  achievements.add(id);
+  localStorage.setItem('rmAchievements', JSON.stringify([...achievements]));
+  const def = ACHIEVEMENTS.find(a => a.id === id);
+  if (def) { achQueue.push(def); scheduleAch(); }
+}
+
+function scheduleAch() {
+  if (achTimer || achQueue.length === 0) return;
+  const def = achQueue.shift();
+  showAchPopup(def);
+  achTimer = setTimeout(() => { achTimer = null; scheduleAch(); }, 2900);
+}
+
+function showAchPopup(def) {
+  const el = document.createElement('div');
+  el.className = 'ach-popup';
+  el.innerHTML =
+    `<span style="font-size:1.8rem;flex-shrink:0">${def.icon}</span>` +
+    `<div><div class="ach-name">${def.name}</div><div class="ach-tag">업적 달성!</div></div>`;
+  document.body.appendChild(el);
+  setTimeout(() => {
+    el.classList.add('out');
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+  }, 2500);
+}
+
+function buildAchievementBadges() {
+  const row = $('ach-row');
+  if (!row) return;
+  const earned = ACHIEVEMENTS.filter(a => achievements.has(a.id));
+  if (earned.length === 0) { row.style.display = 'none'; return; }
+  row.style.display = 'flex';
+  row.innerHTML = earned.map(a =>
+    `<span class="ach-badge" title="${a.name}">${a.icon}</span>`
+  ).join('');
+}
+
+// ════════════════════════════════════════════════
 //  TIMING BAR
 // ════════════════════════════════════════════════
 function addTimingTick(timing, type) {
@@ -956,6 +1029,7 @@ function triggerFever() {
   if (!fb || feverActive) return;
   feverActive = true;
   fb.classList.add('active');
+  unlockAchievement('fever');
   const fp = document.createElement('div');
   fp.className = 'fever-popup';
   fp.textContent = '🔥 FEVER!';
