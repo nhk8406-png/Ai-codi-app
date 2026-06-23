@@ -338,6 +338,28 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
   cursor:pointer;transition:all .15s;touch-action:manipulation;}
 #vol-btn.muted{opacity:.35;}
 
+/* ── MULTIPLIER DISPLAY ── */
+#mult-disp{font-size:.68rem;font-weight:900;letter-spacing:1px;
+  transition:color .15s;margin-top:1px;}
+#mult-disp.tier-up{animation:multPop .32s cubic-bezier(.15,1.4,.4,1) forwards;}
+@keyframes multPop{
+  0%{transform:scale(.5);opacity:.4;}
+  60%{transform:scale(1.5);opacity:1;}
+  100%{transform:scale(1);}
+}
+/* ── PRACTICE MODE ── */
+#practice-btn{background:rgba(107,203,119,.08);border:1px solid rgba(107,203,119,.25);
+  color:rgba(107,203,119,.55);border-radius:8px;padding:4px 10px;font-size:0.72rem;
+  font-weight:700;cursor:pointer;transition:all .15s;touch-action:manipulation;}
+#practice-btn.active{background:rgba(107,203,119,.22);border-color:#6bcb77;color:#6bcb77;}
+#practice-badge{position:absolute;top:82px;left:50%;transform:translateX(-50%);
+  background:rgba(107,203,119,.1);border:1px solid rgba(107,203,119,.32);
+  color:#6bcb77;font-size:.56rem;font-weight:900;letter-spacing:2px;
+  padding:3px 14px;border-radius:20px;z-index:12;pointer-events:none;display:none;}
+#practice-badge.show{display:block;}
+/* Note count on level buttons */
+.lv-count{font-size:.28rem;color:rgba(255,255,255,.2);letter-spacing:.2px;}
+
 /* ── GAME OVER OVERLAY ── */
 #game-over-overlay{position:absolute;inset:0;display:none;flex-direction:column;
   align-items:center;justify-content:center;gap:8px;z-index:100;pointer-events:none;}
@@ -377,6 +399,7 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
     </div>
     <button id="vol-btn" onclick="toggleVol()">🔊</button>
     <button id="demo-btn" onclick="startDemo()">▶ 데모</button>
+    <button id="practice-btn" onclick="togglePractice()">연습</button>
   </div>
   <div class="level-grid" id="level-grid"></div>
   <div id="ach-row"></div>
@@ -395,6 +418,7 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
       <div id="lv-disp">LEVEL 1</div>
       <div id="bpm-disp">60 BPM</div>
       <div id="combo-disp"></div>
+      <div id="mult-disp" style="color:rgba(255,255,255,.28)">×1</div>
     </div>
     <div id="right-hud">
       <div id="live-rank" style="color:#ffd93d">S</div>
@@ -402,6 +426,7 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
     </div>
   </div>
   <div id="hp-bar-wrap"><div id="hp-bar"></div></div>
+  <div id="practice-badge">연습 모드</div>
   <div id="fc-banner">FULL COMBO</div>
   <div id="milestone"></div>
   <div id="game-area">

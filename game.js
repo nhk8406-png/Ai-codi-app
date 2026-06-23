@@ -342,6 +342,8 @@ let perfCnt = 0, goodCnt = 0, missCnt = 0;
 let hp = 100;
 let feverActive = false;
 let autoPlay = false;
+let practiceMode = false;
+let lastMultTier = 1;
 let beatmap = null;
 let t0 = 0, pausedAt = 0, gameT = 0;
 let raf = null;
@@ -473,6 +475,23 @@ function fmtScore(n) {
   return n ? n.toLocaleString() : '';
 }
 
+function getMultiplier(c) {
+  if (c >= 50) return { mult: 8, label: '×8', color: '#ff6b6b' };
+  if (c >= 25) return { mult: 4, label: '×4', color: '#d400ff' };
+  if (c >= 10) return { mult: 2, label: '×2', color: '#4d96ff' };
+  return { mult: 1, label: '×1', color: 'rgba(255,255,255,.28)' };
+}
+
+function countNotes(lvIdx) {
+  const cfg = LV[lvIdx];
+  let total = 0;
+  for (let bar = 0; bar < cfg.bars; bar++) {
+    const grid = cfg.noteGrid[bar % cfg.noteGrid.length];
+    total += grid.filter(v => v >= 0).length;
+  }
+  return total;
+}
+
 function buildTitle() {
   const grid = $('level-grid');
   grid.innerHTML = '';
@@ -490,6 +509,7 @@ function buildTitle() {
         `<span style="font-size:1.05rem;font-weight:900">${i}</span>` +
         `<span class="lv-stars" style="color:${COLORS[i-1]}">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</span>` +
         `<span class="lv-diff" style="color:${COLORS[i-1]}">${DIFF[i-1]}</span>` +
+        `<span class="lv-count">${countNotes(i-1)}N</span>` +
         (best ? `<span class="lv-best">${best}</span>` : '');
       btn.addEventListener('click', () => startGame(i));
     } else {
@@ -544,6 +564,11 @@ function startGame(level) {
   if (hpBar) { hpBar.style.width = '100%'; hpBar.classList.remove('danger'); }
   const lrEl = $('live-rank');
   if (lrEl) { lrEl.textContent = 'S'; lrEl.style.color = '#ffd93d'; }
+  lastMultTier = 1;
+  const mEl = $('mult-disp');
+  if (mEl) { mEl.textContent = '×1'; mEl.style.color = 'rgba(255,255,255,.28)'; mEl.classList.remove('tier-up'); }
+  const pb = $('practice-badge');
+  if (pb) pb.classList.toggle('show', practiceMode);
 
   gameArea.querySelectorAll('.note,.judg,.pt').forEach(e => e.remove());
   showScreen('game');
@@ -699,7 +724,7 @@ function onLaneHit(lane) {
 
   combo++;
   if (combo > maxCombo) maxCombo = combo;
-  const mult = 1 + Math.min(Math.floor(combo / 10) * 0.1, 1.5);
+  const { mult } = getMultiplier(combo);
 
   const timing = best.time - gameT; // positive = early, negative = late
 
@@ -728,7 +753,7 @@ function onLaneHit(lane) {
 
 function registerMiss(lane) {
   missCnt++; combo = 0;
-  hp = Math.max(0, hp - HP_DRAIN);
+  if (!practiceMode) hp = Math.max(0, hp - HP_DRAIN);
   showJudg('MISS', 'miss', lane);
   hitSfx('miss');
   updateHUD();
@@ -739,8 +764,8 @@ function registerMiss(lane) {
   sg.classList.remove('shake');
   void sg.offsetWidth;
   sg.classList.add('shake');
-  // HP = 0 → early fail with game over overlay
-  if (hp <= 0) {
+  // HP = 0 → early fail with game over overlay (skipped in practice mode)
+  if (!practiceMode && hp <= 0) {
     phase = 'gameover';
     showGameOver();
     setTimeout(() => endGame(), 950);
@@ -848,6 +873,20 @@ function updateHUD() {
   else if (feverActive) clearFever();
   if (combo === 100) unlockAchievement('combo100');
 
+  // Multiplier tier display
+  const mInfo = getMultiplier(combo);
+  const mEl = $('mult-disp');
+  if (mEl) {
+    mEl.textContent = mInfo.label;
+    mEl.style.color = mInfo.color;
+    if (mInfo.mult !== lastMultTier) {
+      lastMultTier = mInfo.mult;
+      mEl.classList.remove('tier-up');
+      void mEl.offsetWidth;
+      mEl.classList.add('tier-up');
+    }
+  }
+
   // Milestone popup
   if (MILESTONES.includes(combo)) {
     const el = $('milestone');
@@ -883,7 +922,7 @@ function endGame() {
   const cleared = acc >= 60;
 
   let prev = {};
-  if (!autoPlay) {
+  if (!autoPlay && !practiceMode) {
     prev = progress[curLevel] || {};
     progress[curLevel] = { cleared, stars: Math.max(prev.stars || 0, stars), best: Math.max(prev.best || 0, score) };
     localStorage.setItem('rmProgress', JSON.stringify(progress));
@@ -897,7 +936,7 @@ function endGame() {
   }
 
   clearFever();
-  if (cleared && !autoPlay) {
+  if (cleared && !autoPlay && !practiceMode) {
     if (stars >= 3)          unlockAchievement('stars3');
     if (grade === 'S')       unlockAchievement('srank');
     if (acc >= 95)           unlockAchievement('acc95');
@@ -916,10 +955,11 @@ function endGame() {
   }
 
   const isFC = missCnt === 0;
-  const isNewRecord = cleared && score > 0 && score > (prev.best || 0);
+  const isNewRecord = !practiceMode && cleared && score > 0 && score > (prev.best || 0);
 
   // Static text (shown immediately)
-  $('res-title').textContent  = isFC ? 'FULL COMBO!' : (cleared ? 'CLEAR!' : 'FAILED');
+  const practiceTag = practiceMode ? ' (연습)' : '';
+  $('res-title').textContent  = (isFC ? 'FULL COMBO!' : (cleared ? 'CLEAR!' : 'FAILED')) + practiceTag;
   $('res-title').style.color  = isFC ? '#ffd93d' : (cleared ? '#6bcb77' : '#ff6b6b');
   $('res-lv').textContent     = `LEVEL ${curLevel} — ${LV[curLevel-1].title}`;
   $('s-perf').textContent     = perfCnt;
@@ -993,7 +1033,7 @@ function endGame() {
   if (unBan) {
     unBan.textContent = '';
     unBan.classList.remove('show');
-    if (!prev.cleared && cleared && curLevel < 10) {
+    if (!practiceMode && !prev.cleared && cleared && curLevel < 10) {
       unBan.textContent = `🔓 LEVEL ${curLevel + 1} UNLOCKED!`;
       unBan.style.color = COLORS[curLevel];
       setTimeout(() => { void unBan.offsetWidth; unBan.classList.add('show'); }, 900);
@@ -1159,6 +1199,12 @@ window.goTitle = function () {
 window.startDemo = function() {
   autoPlay = true;
   startGame(1);
+};
+
+window.togglePractice = function() {
+  practiceMode = !practiceMode;
+  const btn = $('practice-btn');
+  if (btn) btn.classList.toggle('active', practiceMode);
 };
 window.retry  = function () { startGame(curLevel); };
 window.goNext = function () { if (curLevel < 10) startGame(curLevel + 1); };
