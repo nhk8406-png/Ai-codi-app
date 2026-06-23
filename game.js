@@ -92,6 +92,45 @@ function hitSfx(type) {
   }
 }
 
+function countdownSfx(n) {
+  if (!AC) return;
+  const t = AC.currentTime + 0.01;
+  if (n > 0) {
+    // 3=E4, 2=G4, 1=B4  → rising tension
+    const freqs = [0, 329.63, 392.00, 659.25];
+    playLead(t, freqs[n], 0.22, 0.5);
+  } else {
+    // GO! — bright ascending chord burst
+    [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => playLead(t + i * 0.055, f, 0.2, 0.42));
+  }
+}
+
+function playJingle(type) {
+  if (!AC) return;
+  const t = AC.currentTime + 0.12;
+  if (type === 'fc') {
+    // Full combo — epic ascending run + triumphant pad
+    [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((f, i) =>
+      playLead(t + i * 0.07, f, 0.22, 0.45));
+    setTimeout(() => {
+      if (!AC) return;
+      playPad(AC.currentTime + 0.05, [523.25, 659.25, 783.99, 1046.50], 1.4);
+      playLead(AC.currentTime + 0.05, 1046.50, 0.6, 0.5);
+    }, 500);
+  } else if (type === 'clear') {
+    // Clear — simple happy arpeggio
+    [523.25, 659.25, 783.99, 1046.50].forEach((f, i) =>
+      playLead(t + i * 0.09, f, 0.2, 0.38));
+    setTimeout(() => {
+      if (!AC) return;
+      playPad(AC.currentTime + 0.05, [523.25, 659.25, 783.99], 1.0);
+    }, 420);
+  } else {
+    // Fail — descending minor
+    [330, 277, 220, 165].forEach((f, i) => playBass(t + i * 0.14, f, 0.28));
+  }
+}
+
 // ════════════════════════════════════════════════
 //  LEVEL CONFIGS
 //  noteGrid: 16-slot array per bar (16th notes), value = lane 0-3 or -1 (rest)
@@ -404,6 +443,13 @@ function drawBackground(beatPhase) {
 // ════════════════════════════════════════════════
 const COLORS = ['#4d96ff','#4dcfff','#6bcb77','#9bff6b','#ffd93d',
                 '#ffb347','#ff8c42','#ff6b6b','#ff3d9a','#d400ff'];
+const DIFF   = ['입문','쉬움','쉬움+','보통','보통+','어려움','어려움+','고급','고급+','BOSS'];
+
+function fmtScore(n) {
+  if (n >= 100000) return Math.floor(n / 1000) + 'k';
+  if (n >= 10000)  return (n / 1000).toFixed(1) + 'k';
+  return n ? n.toLocaleString() : '';
+}
 
 function buildTitle() {
   const grid = $('level-grid');
@@ -414,14 +460,19 @@ function buildTitle() {
     const unlocked = i === 1 || progress[i - 1]?.cleared;
     const p = progress[i] || {};
     const stars = p.stars || 0;
+    const best  = fmtScore(p.best || 0);
     btn.style.setProperty('--c', unlocked ? COLORS[i - 1] : '#333');
+    btn.setAttribute('data-diff', DIFF[i - 1]);
     if (unlocked) {
       btn.innerHTML =
-        `<span>${i}</span>` +
-        `<span class="lv-stars" style="color:${COLORS[i-1]}">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</span>`;
+        `<span style="font-size:1.05rem;font-weight:900">${i}</span>` +
+        `<span class="lv-stars" style="color:${COLORS[i-1]}">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</span>` +
+        `<span class="lv-diff" style="color:${COLORS[i-1]}">${DIFF[i-1]}</span>` +
+        (best ? `<span class="lv-best">${best}</span>` : '');
       btn.addEventListener('click', () => startGame(i));
     } else {
       btn.classList.add('locked');
+      btn.removeAttribute('data-diff');
       btn.innerHTML = `<span style="font-size:1.1rem">🔒</span>`;
     }
     grid.appendChild(btn);
@@ -471,6 +522,7 @@ function countdown(n, cb) {
   el.textContent = n > 0 ? String(n) : 'GO!';
   el.style.animation = 'none'; void el.offsetWidth;
   el.style.animation = 'countPop .75s ease-out forwards';
+  countdownSfx(n);
   setTimeout(() => { n > 0 ? countdown(n - 1, cb) : (el.style.display = 'none', cb()); }, n > 0 ? 780 : 560);
 }
 
@@ -502,13 +554,20 @@ function gameLoop(ts) {
 
   if (beatIdx !== lastBeatIdx && gameT > 0) {
     lastBeatIdx = beatIdx;
-    const drumSlot = (beatIdx * 4) % 16; // which quarter beat in the 16-slot drum grid
+    const drumSlot = (beatIdx * 4) % 16;
     const d = cfg.drums[drumSlot] || '';
     triggerBeatRing(d.includes('K'));
     // Screen edge flash
     const flash = $('beat-flash');
     flash.className = d.includes('K') ? 'kick' : d.includes('S') ? 'snare' : '';
     setTimeout(() => { if (flash) flash.className = ''; }, 80);
+    // Hit zone pulse on every beat
+    document.querySelectorAll('.hit-zone').forEach(hz => {
+      hz.classList.remove('beat-pulse');
+      void hz.offsetWidth;
+      hz.classList.add('beat-pulse');
+      setTimeout(() => hz.classList.remove('beat-pulse'), 200);
+    });
   }
 
   // ── Draw background ──
@@ -594,6 +653,11 @@ function registerMiss(lane) {
   showJudg('MISS', 'miss', lane);
   hitSfx('miss');
   updateHUD();
+  // Screen shake
+  const sg = $('screen-game');
+  sg.classList.remove('shake');
+  void sg.offsetWidth;
+  sg.classList.add('shake');
 }
 
 // ════════════════════════════════════════════════
@@ -707,6 +771,9 @@ function endGame() {
   const nb = $('next-btn');
   if (cleared && curLevel < 10) { nb.style.display = ''; nb.textContent = `레벨 ${curLevel + 1} →`; }
   else { nb.style.display = 'none'; }
+
+  // Jingle
+  playJingle(isFC ? 'fc' : cleared ? 'clear' : 'fail');
 
   showScreen('result');
 }
