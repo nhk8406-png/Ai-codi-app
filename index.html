@@ -13,12 +13,18 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
 .screen.active{display:flex;}
 
 /* ── TITLE ── */
-#screen-title{background:radial-gradient(ellipse at 50% 0%,#1a0a3e 0%,#08080f 70%);}
+#screen-title{background:radial-gradient(ellipse at 50% 0%,#1a0a3e 0%,#08080f 70%);overflow:hidden;}
 .logo{font-size:clamp(2rem,8vw,3.5rem);font-weight:900;letter-spacing:6px;
   background:linear-gradient(90deg,#ff6b6b,#ffd93d,#6bcb77,#4d96ff,#d400ff);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  filter:drop-shadow(0 0 20px rgba(180,100,255,0.6));}
-.logo-sub{color:rgba(255,255,255,0.35);font-size:0.75rem;letter-spacing:4px;margin:6px 0 32px;}
+  filter:drop-shadow(0 0 20px rgba(180,100,255,0.6));
+  animation:logoPulse 1.2s ease-in-out infinite alternate;}
+@keyframes logoPulse{from{filter:drop-shadow(0 0 12px rgba(180,100,255,.4))}to{filter:drop-shadow(0 0 28px rgba(180,100,255,.9));}}
+.logo-sub{color:rgba(255,255,255,0.35);font-size:0.75rem;letter-spacing:4px;margin:6px 0 24px;}
+/* Animated beat bars under title */
+.beat-bars{display:flex;gap:5px;align-items:flex-end;height:28px;margin-bottom:20px;}
+.beat-bar{width:6px;border-radius:3px;animation:beatBar var(--s) ease-in-out infinite alternate;}
+@keyframes beatBar{from{height:4px;opacity:.3}to{height:100%;opacity:1;}}
 .level-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:10px;max-width:360px;width:100%;}
 .lbtn{width:100%;aspect-ratio:1;border:2px solid var(--c);border-radius:14px;background:transparent;
   color:#fff;font-size:1.1rem;font-weight:800;cursor:pointer;display:flex;flex-direction:column;
@@ -40,6 +46,7 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
 #score-disp{font-size:1.6rem;font-weight:800;color:#ffd93d;min-width:110px;}
 #center-hud{text-align:center;}
 #lv-disp{font-size:0.65rem;color:rgba(255,255,255,.35);letter-spacing:3px;}
+#bpm-disp{font-size:0.58rem;color:rgba(255,255,255,.2);letter-spacing:2px;margin-top:1px;}
 #combo-disp{font-size:2.2rem;font-weight:900;color:#ff6b6b;
   text-shadow:0 0 16px rgba(255,107,107,.9);transition:transform .08s;min-height:44px;}
 #combo-disp.bump{transform:scale(1.35);}
@@ -47,6 +54,34 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
 #pause-btn{position:absolute;top:12px;right:14px;background:rgba(255,255,255,.08);
   border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5);border-radius:8px;
   padding:5px 10px;cursor:pointer;font-size:0.75rem;z-index:15;touch-action:manipulation;}
+
+/* Background canvas */
+#bg-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+
+/* Beat flash overlay */
+#beat-flash{position:absolute;inset:0;pointer-events:none;z-index:5;
+  box-shadow:inset 0 0 80px transparent;transition:box-shadow .05s;}
+#beat-flash.kick{box-shadow:inset 0 0 80px rgba(120,60,255,.35);}
+#beat-flash.snare{box-shadow:inset 0 0 60px rgba(255,217,61,.2);}
+
+/* Full combo banner */
+#fc-banner{position:absolute;top:80px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg,#ffd93d,#ff8c42);color:#000;font-size:.75rem;
+  font-weight:900;padding:5px 16px;border-radius:20px;letter-spacing:2px;
+  z-index:12;pointer-events:none;display:none;
+  animation:fcPulse 1.5s ease-in-out infinite;}
+@keyframes fcPulse{0%,100%{opacity:.8}50%{opacity:1;transform:translateX(-50%) scale(1.05);}}
+
+/* Milestone combo popup */
+#milestone{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:1.4rem;font-weight:900;pointer-events:none;z-index:20;
+  display:none;animation:milestoneAnim .9s ease-out forwards;}
+@keyframes milestoneAnim{
+  0%{transform:translate(-50%,-50%) scale(.4);opacity:0;}
+  30%{transform:translate(-50%,-50%) scale(1.2);opacity:1;}
+  70%{transform:translate(-50%,-70%) scale(1);opacity:1;}
+  100%{transform:translate(-50%,-80%) scale(.8);opacity:0;}
+}
 
 /* ── GAME AREA / LANES ── */
 #game-area{position:absolute;inset:0;display:flex;max-width:420px;left:50%;transform:translateX(-50%);right:auto;}
@@ -138,21 +173,27 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
 <div id="screen-title" class="screen active">
   <div class="logo">리듬마스터</div>
   <div class="logo-sub">RHYTHM MASTER</div>
+  <div class="beat-bars" id="beat-bars"></div>
   <div class="level-grid" id="level-grid"></div>
   <div class="hint">키보드: D &nbsp;F &nbsp;J &nbsp;K &nbsp;|&nbsp; 마우스 / 터치로도 플레이</div>
 </div>
 
 <!-- ══ GAME ══ -->
 <div id="screen-game" class="screen">
+  <canvas id="bg-canvas"></canvas>
+  <div id="beat-flash"></div>
   <div id="progress-wrap"><div id="progress-bar"></div></div>
   <div id="hud">
     <div id="score-disp">0</div>
     <div id="center-hud">
       <div id="lv-disp">LEVEL 1</div>
+      <div id="bpm-disp">60 BPM</div>
       <div id="combo-disp"></div>
     </div>
     <div id="acc-disp">100%</div>
   </div>
+  <div id="fc-banner">FULL COMBO</div>
+  <div id="milestone"></div>
   <div id="game-area">
     <div class="lane lane-0" data-lane="0">
       <div class="hit-zone"></div><div class="lane-glow"></div>

@@ -326,6 +326,80 @@ function showScreen(name) {
 }
 
 // ════════════════════════════════════════════════
+//  BACKGROUND CANVAS
+// ════════════════════════════════════════════════
+let bgCanvas, bgCtx;
+// Level accent colors for background pulse
+const LV_COLORS = [
+  [77,150,255], [77,207,255], [107,203,119], [155,255,107], [255,217,61],
+  [255,179,71], [255,140,66], [255,107,107], [255,61,154], [212,0,255],
+];
+
+function initBgCanvas() {
+  bgCanvas = $('bg-canvas');
+  bgCtx = bgCanvas.getContext('2d');
+  sizeBgCanvas();
+  window.addEventListener('resize', sizeBgCanvas);
+}
+
+function sizeBgCanvas() {
+  if (!bgCanvas) return;
+  bgCanvas.width  = bgCanvas.clientWidth  || window.innerWidth;
+  bgCanvas.height = bgCanvas.clientHeight || window.innerHeight;
+}
+
+// rings[] tracks active beat rings: { r, maxR, alpha }
+let rings = [];
+let lastBeatIdx = -1;
+
+function triggerBeatRing(isKick) {
+  const w = bgCanvas.width, h = bgCanvas.height;
+  rings.push({ x: w / 2, y: h * 0.82, r: 10, maxR: Math.max(w, h) * 0.7, alpha: isKick ? 0.45 : 0.25, kick: isKick });
+  if (rings.length > 8) rings.shift();
+}
+
+function drawBackground(beatPhase) {
+  if (!bgCtx) return;
+  const ctx = bgCtx;
+  const w = bgCanvas.width, h = bgCanvas.height;
+  const [r, g, b] = LV_COLORS[curLevel - 1];
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Subtle grid dots
+  const gridStep = 40;
+  ctx.fillStyle = `rgba(${r},${g},${b},0.04)`;
+  for (let x = gridStep / 2; x < w; x += gridStep) {
+    for (let y = gridStep / 2; y < h; y += gridStep) {
+      ctx.beginPath(); ctx.arc(x, y, 1.5, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // Center beat pulse (radiates from hit zone)
+  const pulse = Math.max(0, 1 - beatPhase * 2.5);
+  if (pulse > 0) {
+    const grad = ctx.createRadialGradient(w / 2, h, 0, w / 2, h, h * 1.2);
+    grad.addColorStop(0, `rgba(${r},${g},${b},${pulse * 0.18})`);
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  // Expanding rings
+  rings = rings.filter(ring => ring.r < ring.maxR);
+  for (const ring of rings) {
+    const progress = ring.r / ring.maxR;
+    const a = ring.alpha * (1 - progress);
+    ctx.beginPath();
+    ctx.arc(ring.x, ring.y, ring.r, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(${r},${g},${b},${a})`;
+    ctx.lineWidth = ring.kick ? 2.5 : 1.5;
+    ctx.stroke();
+    ring.r += ring.kick ? 12 : 8;
+  }
+}
+
+// ════════════════════════════════════════════════
 //  TITLE
 // ════════════════════════════════════════════════
 const COLORS = ['#4d96ff','#4dcfff','#6bcb77','#9bff6b','#ffd93d',
@@ -359,17 +433,24 @@ function buildTitle() {
 // ════════════════════════════════════════════════
 function startGame(level) {
   initAC(); resumeAC();
+  initBgCanvas();
   curLevel = level;
   score = combo = maxCombo = perfCnt = goodCnt = missCnt = 0;
   beatmap = buildBeatmap(level - 1);
   phase = 'countdown';
+  rings = [];
+  lastBeatIdx = -1;
 
-  $('lv-disp').textContent  = `LEVEL ${level}`;
+  $('lv-disp').textContent    = `LEVEL ${level}`;
+  $('bpm-disp').textContent   = `${LV[level-1].bpm} BPM`;
   $('score-disp').textContent = '0';
   $('combo-disp').textContent = '';
   $('acc-disp').textContent   = '100%';
   $('progress-bar').style.width = '0%';
-  $('pause-btn').textContent = '일시정지';
+  $('pause-btn').textContent  = '일시정지';
+  $('fc-banner').style.display = 'none';
+  $('milestone').style.display = 'none';
+  $('beat-flash').className   = '';
 
   gameArea.querySelectorAll('.note,.judg,.pt').forEach(e => e.remove());
   showScreen('game');
@@ -412,7 +493,28 @@ function gameLoop(ts) {
   if (phase !== 'playing') return;
   gameT = (ts - t0) / 1000;
   const hz = hitZoneY();
+  const cfg = LV[curLevel - 1];
+  const beatDur = 60 / cfg.bpm;
 
+  // ── Beat tracking (for visualizer) ──
+  const beatIdx = Math.floor(gameT / beatDur);
+  const beatPhase = (gameT % beatDur) / beatDur;
+
+  if (beatIdx !== lastBeatIdx && gameT > 0) {
+    lastBeatIdx = beatIdx;
+    const drumSlot = (beatIdx * 4) % 16; // which quarter beat in the 16-slot drum grid
+    const d = cfg.drums[drumSlot] || '';
+    triggerBeatRing(d.includes('K'));
+    // Screen edge flash
+    const flash = $('beat-flash');
+    flash.className = d.includes('K') ? 'kick' : d.includes('S') ? 'snare' : '';
+    setTimeout(() => { if (flash) flash.className = ''; }, 80);
+  }
+
+  // ── Draw background ──
+  drawBackground(beatPhase);
+
+  // ── Update notes ──
   for (const note of beatmap.notes) {
     if (note.hit || note.missed) {
       if (note.el) { note.el.remove(); note.el = null; }
@@ -420,7 +522,6 @@ function gameLoop(ts) {
     }
     const until = note.time - gameT;
 
-    // Spawn when note should enter screen
     if (!note.el && until <= TRAVEL) {
       note.el = document.createElement('div');
       note.el.className = `note note-${note.lane}`;
@@ -525,6 +626,12 @@ function spawnParticles(lane) {
   }
 }
 
+const MILESTONES = [10, 25, 50, 100, 150, 200, 300, 500];
+const MILESTONE_LABELS = {
+  10:'10콤보!', 25:'25콤보!', 50:'50콤보!!', 100:'100콤보!!!',
+  150:'150콤보!!!', 200:'200콤보!!!!', 300:'300콤보!!!!!', 500:'MAX콤보!!!!!'
+};
+
 function updateHUD() {
   $('score-disp').textContent = score.toLocaleString();
   const c = $('combo-disp');
@@ -535,6 +642,26 @@ function updateHUD() {
   const tot = perfCnt + goodCnt + missCnt;
   const acc = tot ? Math.round((perfCnt + goodCnt * 0.5) / tot * 100) : 100;
   $('acc-disp').textContent = acc + '%';
+
+  // Full combo banner (no misses so far)
+  if (missCnt === 0 && combo >= 5) {
+    $('fc-banner').style.display = 'block';
+  } else if (missCnt > 0) {
+    $('fc-banner').style.display = 'none';
+  }
+
+  // Milestone popup
+  if (MILESTONES.includes(combo)) {
+    const el = $('milestone');
+    const [r, g, b] = LV_COLORS[curLevel - 1];
+    el.textContent = MILESTONE_LABELS[combo];
+    el.style.color = `rgb(${r},${g},${b})`;
+    el.style.textShadow = `0 0 30px rgba(${r},${g},${b},.9)`;
+    el.style.display = 'block';
+    el.style.animation = 'none'; void el.offsetWidth;
+    el.style.animation = 'milestoneAnim .9s ease-out forwards';
+    el.addEventListener('animationend', () => { el.style.display = 'none'; }, { once: true });
+  }
 }
 
 // ════════════════════════════════════════════════
@@ -561,8 +688,9 @@ function endGame() {
   progress[curLevel] = { cleared, stars: Math.max(prev.stars || 0, stars), best: Math.max(prev.best || 0, score) };
   localStorage.setItem('rmProgress', JSON.stringify(progress));
 
-  $('res-title').textContent  = cleared ? 'CLEAR!' : 'FAILED';
-  $('res-title').style.color  = cleared ? '#6bcb77' : '#ff6b6b';
+  const isFC = missCnt === 0;
+  $('res-title').textContent  = isFC ? 'FULL COMBO!' : (cleared ? 'CLEAR!' : 'FAILED');
+  $('res-title').style.color  = isFC ? '#ffd93d' : (cleared ? '#6bcb77' : '#ff6b6b');
   $('res-lv').textContent     = `LEVEL ${curLevel} — ${LV[curLevel-1].title}`;
   $('res-stars').textContent  = '★'.repeat(stars) + '☆'.repeat(3 - stars);
   $('res-score').textContent  = score.toLocaleString();
@@ -618,7 +746,27 @@ document.addEventListener('keyup', e => {
 $('pause-btn').addEventListener('click', togglePause);
 
 // ════════════════════════════════════════════════
+//  TITLE BEAT BARS (animated equalizer)
+// ════════════════════════════════════════════════
+function buildBeatBars() {
+  const container = $('beat-bars');
+  if (!container) return;
+  container.innerHTML = '';
+  const barColors = ['#ff6b6b','#ff8c42','#ffd93d','#6bcb77','#4d96ff',
+                     '#6bcb77','#ffd93d','#ff8c42','#ff6b6b','#ff3d9a','#d400ff','#4d96ff'];
+  barColors.forEach((col, i) => {
+    const b = document.createElement('div');
+    b.className = 'beat-bar';
+    b.style.background = col;
+    b.style.setProperty('--s', (0.4 + Math.random() * 0.6).toFixed(2) + 's');
+    b.style.animationDelay = (i * 0.07).toFixed(2) + 's';
+    container.appendChild(b);
+  });
+}
+
+// ════════════════════════════════════════════════
 //  BOOT
 // ════════════════════════════════════════════════
+buildBeatBars();
 buildTitle();
 showScreen('title');
