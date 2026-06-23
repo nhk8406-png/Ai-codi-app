@@ -1437,7 +1437,6 @@ function buildBeatBars() {
 buildBeatBars();
 buildTitle();
 showScreen('title');
-initTitleCanvas();
 
 // Apply persisted settings to title UI
 document.querySelectorAll('.spd-btn').forEach(b => {
