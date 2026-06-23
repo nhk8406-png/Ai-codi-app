@@ -249,6 +249,47 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
 .po-retry{background:rgba(255,255,255,.1);color:#fff;}
 .po-quit{background:rgba(255,80,80,.1);color:#ff6b6b;border:1px solid rgba(255,107,107,.25);}
 
+/* ── TIMING ACCURACY BAR ── */
+#timing-bar{position:absolute;bottom:44px;left:50%;transform:translateX(-50%);
+  width:min(70%,280px);height:4px;z-index:8;pointer-events:none;border-radius:2px;}
+#timing-bar-bg{position:absolute;inset:0;border-radius:2px;
+  background:linear-gradient(90deg,
+    rgba(255,140,50,.14) 0%,rgba(255,140,50,.14) 34%,
+    rgba(107,203,119,.22) 34%,rgba(107,203,119,.22) 66%,
+    rgba(255,217,61,.14) 66%,rgba(255,217,61,.14) 100%);}
+#timing-bar-center{position:absolute;left:50%;top:-3px;width:1px;height:10px;
+  border-radius:1px;background:rgba(255,255,255,.22);transform:translateX(-50%);}
+.t-tick{position:absolute;top:-3px;width:3px;height:10px;border-radius:1.5px;
+  transform:translateX(-50%);pointer-events:none;
+  animation:tTickFade 2.2s ease-out forwards;}
+@keyframes tTickFade{0%{opacity:.9;}60%{opacity:.55;}100%{opacity:0;height:5px;}}
+.t-tick.tp{background:#6bcb77;}
+.t-tick.te{background:#ff8c42;}
+.t-tick.tl{background:#ffd93d;}
+#timing-labels{position:absolute;bottom:27px;left:50%;transform:translateX(-50%);
+  width:min(70%,280px);display:flex;justify-content:space-between;
+  z-index:8;pointer-events:none;}
+#timing-labels span{font-size:.33rem;color:rgba(255,255,255,.18);letter-spacing:.4px;font-weight:700;}
+
+/* ── FEVER MODE ── */
+#fever-border{position:absolute;inset:0;pointer-events:none;z-index:6;display:none;}
+#fever-border.active{display:block;animation:feverGlow 1.5s linear infinite;}
+@keyframes feverGlow{
+  0%,100%{box-shadow:inset 0 0 70px rgba(255,107,107,.55);}
+  25%{box-shadow:inset 0 0 70px rgba(255,217,61,.55);}
+  50%{box-shadow:inset 0 0 70px rgba(107,203,119,.55);}
+  75%{box-shadow:inset 0 0 70px rgba(77,150,255,.55);}
+}
+.fever-popup{position:absolute;top:36%;left:50%;font-size:2.4rem;font-weight:900;
+  z-index:30;pointer-events:none;white-space:nowrap;letter-spacing:2px;
+  animation:feverPopAnim 1.7s ease-out forwards;}
+@keyframes feverPopAnim{
+  0%{transform:translate(-50%,-50%) scale(.1);opacity:0;}
+  18%{transform:translate(-50%,-50%) scale(1.3);opacity:1;}
+  55%{transform:translate(-50%,-58%) scale(1);opacity:1;}
+  100%{transform:translate(-50%,-70%) scale(.8);opacity:0;}
+}
+
 /* ── LEVEL UNLOCK BANNER (result screen) ── */
 #unlock-banner{font-size:.8rem;font-weight:900;letter-spacing:2.5px;
   margin-bottom:4px;opacity:0;min-height:1.3em;text-align:center;}
@@ -354,6 +395,14 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
       <div class="lane-key">K</div>
     </div>
   </div>
+  <div id="timing-bar">
+    <div id="timing-bar-bg"></div>
+    <div id="timing-bar-center"></div>
+  </div>
+  <div id="timing-labels">
+    <span>EARLY</span><span>PERFECT</span><span>LATE</span>
+  </div>
+  <div id="fever-border"></div>
   <div id="pause-overlay">
     <div class="po-title">PAUSED</div>
     <div class="po-lv" id="po-lv">LEVEL 1</div>

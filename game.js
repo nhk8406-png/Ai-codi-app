@@ -340,6 +340,7 @@ let curLevel = 1;
 let score = 0, combo = 0, maxCombo = 0;
 let perfCnt = 0, goodCnt = 0, missCnt = 0;
 let hp = 100;
+let feverActive = false;
 let beatmap = null;
 let t0 = 0, pausedAt = 0, gameT = 0;
 let raf = null;
@@ -494,6 +495,7 @@ function startGame(level) {
   curLevel = level;
   score = combo = maxCombo = perfCnt = goodCnt = missCnt = 0;
   hp = 100;
+  clearFever();
   beatmap = buildBeatmap(level - 1);
   phase = 'countdown';
   rings = [];
@@ -664,6 +666,7 @@ function onLaneHit(lane) {
     showJudg('PERFECT!', 'perfect', lane);
     showScorePopup(pts, 'perfect', lane);
     hitSfx('perfect');
+    addTimingTick(timing, 'perfect');
   } else {
     goodCnt++;
     const pts = Math.round(50 * mult);
@@ -671,6 +674,7 @@ function onLaneHit(lane) {
     showJudg('GOOD', 'good', lane, timing);
     showScorePopup(pts, 'good', lane);
     hitSfx('good');
+    addTimingTick(timing, 'good');
   }
 
   spawnParticles(lane);
@@ -795,6 +799,10 @@ function updateHUD() {
     $('fc-banner').style.display = 'none';
   }
 
+  // Fever mode threshold
+  if (combo >= 50) triggerFever();
+  else if (feverActive) clearFever();
+
   // Milestone popup
   if (MILESTONES.includes(combo)) {
     const el = $('milestone');
@@ -851,6 +859,8 @@ function endGame() {
   const nb = $('next-btn');
   if (cleared && curLevel < 10) { nb.style.display = ''; nb.textContent = `레벨 ${curLevel + 1} →`; }
   else { nb.style.display = 'none'; }
+
+  clearFever();
 
   // Prep animated elements before screen switch
   $('res-score').textContent = '0';
@@ -920,6 +930,48 @@ function endGame() {
 
   // ── Confetti (FC or 3-star) ──
   if (isFC || stars >= 3) setTimeout(spawnConfetti, 650);
+}
+
+// ════════════════════════════════════════════════
+//  TIMING BAR
+// ════════════════════════════════════════════════
+function addTimingTick(timing, type) {
+  const bar = $('timing-bar');
+  if (!bar) return;
+  // timing > 0 = early (left), < 0 = late (right)
+  const pos = 50 - (timing / GOOD_W) * 50;
+  const tick = document.createElement('div');
+  const cls = type === 'perfect' ? 'tp' : timing > 0 ? 'te' : 'tl';
+  tick.className = `t-tick ${cls}`;
+  tick.style.left = Math.max(1, Math.min(99, pos)) + '%';
+  bar.appendChild(tick);
+  tick.addEventListener('animationend', () => tick.remove());
+}
+
+// ════════════════════════════════════════════════
+//  FEVER MODE
+// ════════════════════════════════════════════════
+function triggerFever() {
+  const fb = $('fever-border');
+  if (!fb || feverActive) return;
+  feverActive = true;
+  fb.classList.add('active');
+  const fp = document.createElement('div');
+  fp.className = 'fever-popup';
+  fp.textContent = '🔥 FEVER!';
+  $('screen-game').appendChild(fp);
+  fp.addEventListener('animationend', () => fp.remove());
+  if (AC) {
+    const t = AC.currentTime + 0.02;
+    [523.25, 659.25, 783.99, 1046.50].forEach((f, i) =>
+      playLead(t + i * 0.055, f, 0.15, 0.4));
+  }
+}
+
+function clearFever() {
+  feverActive = false;
+  const fb = $('fever-border');
+  if (fb) fb.classList.remove('active');
 }
 
 function spawnConfetti() {
