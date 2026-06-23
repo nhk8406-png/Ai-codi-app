@@ -219,6 +219,11 @@ const LV = [
       [0, 2, 1, 3, 2, 0, 3, 1, 0,-1, 1, 2, 3, 0,-1, 1],
       [0, 1, 2,-1, 3, 2, 1, 0,-1, 2, 0, 3, 1,-1, 2, 3],
     ],
+    holds:[
+      {bar:1, pos:8, lane:3, len:8},
+      {bar:4, pos:9, lane:2, len:8},
+      {bar:7, pos:3, lane:0, len:8},
+    ],
     drums:['KH','H','H','H', 'S','H','H','O', 'KH','H','H','H', 'S','H','H','O'],
     bassLine:[[N.C2,0.5],[N.D2,0.5],[N.Eb3,0.5],[N.G2,0.5],[N.C2,0.5],[N.D2,0.5],[N.Eb3,0.5],[N.G2,0.5]],
     leadLine:[[N.C5,0.5],[N.Eb5,0.5],[N.G5,0.5],[N.Bb5,0.5],[N.C5,0.5],[N.Eb5,0.5],[N.G5,0.5],[N.Bb5,0.5]],
@@ -229,6 +234,13 @@ const LV = [
     noteGrid:[
       [0, 1, 2, 3, 0, 2, 1, 3, 2, 0, 3, 1, 0, 3, 2, 1],
       [0, 2,-1, 1, 3,-1, 0, 2, 1, 3,-1, 0, 2, 1, 3,-1],
+    ],
+    holds:[
+      {bar:1, pos:2, lane:2, len:8},
+      {bar:3, pos:5, lane:0, len:8},
+      {bar:5, pos:10, lane:3, len:8},
+      {bar:7, pos:15, lane:1, len:8},
+      {bar:9, pos:2, lane:3, len:8},
     ],
     drums:['K','H','H','H', 'SH','H','H','H', 'K','H','H','H', 'SH','H','H','H'],
     bassLine:[[N.A2,0.5],[N.G2,0.5],[N.F2,0.5],[N.E2,0.5],[N.A2,0.5],[N.G2,0.5],[N.F2,0.5],[N.E2,0.5]],
@@ -241,6 +253,13 @@ const LV = [
       [0, 1, 2, 3, 1, 2, 3, 0, 2, 3, 0, 1, 3, 0, 1, 2],
       [0, 3, 1, 2, 0, 1, 3, 2, 1, 0, 2, 3, 2, 1, 0, 3],
     ],
+    holds:[
+      {bar:0, pos:0, lane:3, len:8},
+      {bar:2, pos:8, lane:1, len:8},
+      {bar:5, pos:0, lane:2, len:8},
+      {bar:7, pos:4, lane:0, len:8},
+      {bar:9, pos:0, lane:3, len:8},
+    ],
     drums:['K','H','S','H', 'K','H','S','H', 'KH','H','S','H', 'K','H','S','H'],
     bassLine:[[N.D2,0.5],[N.F2,0.5],[N.A2,0.5],[N.C3,0.5],[N.D2,0.5],[N.F2,0.5],[N.A2,0.5],[N.C3,0.5]],
     leadLine:[[N.D6,0.5],[N.C6,0.5],[N.Bb5,0.5],[N.A5,0.5],[N.D6,0.5],[N.C6,0.5],[N.Bb5,0.5],[N.A5,0.5]],
@@ -252,6 +271,13 @@ const LV = [
       [0, 1, 2, 3, 0, 2, 1, 3, 0, 3, 2, 1, 0, 1, 2, 3],
       [0, 2, 1, 3, 2, 0, 3, 1, 0, 1, 3, 2, 1, 3, 0, 2],
       [3, 2, 1, 0, 3, 1, 2, 0, 3, 0, 1, 2, 3, 2, 0, 1],
+    ],
+    holds:[
+      {bar:0, pos:0, lane:2, len:8},
+      {bar:2, pos:0, lane:1, len:8},
+      {bar:5, pos:0, lane:3, len:8},
+      {bar:8, pos:0, lane:0, len:8},
+      {bar:10, pos:0, lane:2, len:8},
     ],
     drums:['KH','H','SH','H', 'K','H','S','H', 'KH','H','S','H', 'K','H','SH','H'],
     bassLine:[[N.C2,0.25],[N.D2,0.25],[N.Eb3,0.25],[N.F2,0.25],[N.C2,0.25],[N.D2,0.25],[N.Eb3,0.25],[N.F2,0.25],[N.C2,0.25],[N.D2,0.25],[N.Eb3,0.25],[N.F2,0.25],[N.C2,0.25],[N.D2,0.25],[N.Eb3,0.25],[N.F2,0.25]],
@@ -277,6 +303,14 @@ function buildBeatmap(lvIdx) {
       }
     }
   }
+  if (cfg.holds) {
+    for (const h of cfg.holds) {
+      const time = (h.bar * 16 + h.pos) * s16;
+      notes.push({ time, lane: h.lane, hit: false, missed: false, el: null,
+        type: 'hold', endTime: time + h.len * s16, holding: false, tailEl: null });
+    }
+  }
+
   notes.sort((a, b) => a.time - b.time);
   return { notes, totalTime: cfg.bars * beat * 4 };
 }
@@ -345,6 +379,7 @@ let autoPlay = false;
 let practiceMode = false;
 let lastMultTier = 1;
 let beatmap = null;
+const heldLanes = [false, false, false, false];
 let t0 = 0, pausedAt = 0, gameT = 0;
 let raf = null;
 
@@ -564,6 +599,7 @@ function startGame(level) {
   if (hpBar) { hpBar.style.width = '100%'; hpBar.classList.remove('danger'); }
   const lrEl = $('live-rank');
   if (lrEl) { lrEl.textContent = 'S'; lrEl.style.color = '#ffd93d'; }
+  heldLanes.fill(false);
   lastMultTier = 1;
   const mEl = $('mult-disp');
   if (mEl) { mEl.textContent = '×1'; mEl.style.color = 'rgba(255,255,255,.28)'; mEl.classList.remove('tier-up'); }
@@ -652,9 +688,11 @@ function gameLoop(ts) {
 
   // ── Update notes ──
   const travelTime = TRAVEL / speedMult;
+  const tailClr = ['rgba(255,107,107,.7)','rgba(255,217,61,.7)','rgba(107,203,119,.7)','rgba(77,150,255,.7)'];
   for (const note of beatmap.notes) {
     if (note.hit || note.missed) {
-      if (note.el) { note.el.remove(); note.el = null; }
+      if (note.el)   { note.el.remove();   note.el   = null; }
+      if (note.tailEl) { note.tailEl.remove(); note.tailEl = null; }
       continue;
     }
     const until = note.time - gameT;
@@ -662,22 +700,50 @@ function gameLoop(ts) {
     if (!note.el && until <= travelTime) {
       note.el = document.createElement('div');
       note.el.className = `note note-${note.lane}`;
+      if (note.type === 'hold') {
+        note.el.classList.add('hold');
+        note.tailEl = document.createElement('div');
+        note.tailEl.className = 'hold-tail';
+        note.tailEl.style.background = tailClr[note.lane];
+        note.el.appendChild(note.tailEl);
+      }
       laneEls[note.lane].appendChild(note.el);
     }
 
     if (note.el) {
       const prog = 1 - until / travelTime;
       note.el.style.top = (prog * hz - 23) + 'px';
-      // Approach glow: brightens in the last 0.55s before hit zone
-      if (until > 0 && until < 0.55) {
+      if (until > 0 && until < 0.55 && !note.holding) {
         const g = 1 - until / 0.55;
         note.el.style.filter = `brightness(${(1 + g * 1.15).toFixed(2)})`;
-      } else if (note.el.style.filter) {
+      } else if (!note.holding && note.el.style.filter) {
         note.el.style.filter = '';
+      }
+      if (note.type === 'hold' && note.tailEl) {
+        const tailH = Math.max(4, Math.round((note.endTime - note.time) / travelTime * hz));
+        note.tailEl.style.height = tailH + 'px';
+        if (note.holding) {
+          const hp2 = Math.min((gameT - note.time) / (note.endTime - note.time), 1);
+          note.tailEl.style.opacity = (0.7 - hp2 * 0.55).toFixed(2);
+        }
       }
     }
 
-    if (until < -MISS_CUT) {
+    // Hold completion
+    if (note.type === 'hold' && note.holding && gameT >= note.endTime) {
+      note.hit = true; note.holding = false;
+      heldLanes[note.lane] = false;
+      const { mult } = getMultiplier(combo);
+      score += Math.round(100 * mult);
+      showJudg('HOLD!', 'perfect', note.lane);
+      spawnParticles(note.lane);
+      updateHUD(); updateLiveRank();
+    } else if (note.type === 'hold' && !note.holding && until < -MISS_CUT) {
+      note.missed = true;
+      if (note.el)   { note.el.remove();   note.el   = null; }
+      if (note.tailEl) { note.tailEl.remove(); note.tailEl = null; }
+      registerMiss(note.lane);
+    } else if (!note.type && until < -MISS_CUT) {
       note.missed = true;
       if (note.el) { note.el.remove(); note.el = null; }
       registerMiss(note.lane);
@@ -689,7 +755,12 @@ function gameLoop(ts) {
   // Auto-play: hit every note at its exact time
   if (autoPlay) {
     for (const note of beatmap.notes) {
-      if (!note.hit && !note.missed && note.time - gameT < 0.03 && note.time - gameT > -0.03) {
+      if (note.hit || note.missed) continue;
+      const nt = note.time - gameT;
+      if (note.type === 'hold') {
+        if (!note.holding && nt < 0.03 && nt > -0.03) onLaneHit(note.lane);
+        // hold notes auto-complete via game loop (no release needed in auto-play)
+      } else if (nt < 0.03 && nt > -0.03) {
         onLaneHit(note.lane);
       }
     }
@@ -719,8 +790,15 @@ function onLaneHit(lane) {
   }
   if (!best) return;
 
-  best.hit = true;
-  if (best.el) { best.el.remove(); best.el = null; }
+  const isHold = best.type === 'hold';
+  if (isHold) {
+    best.holding = true;
+    heldLanes[best.lane] = best;
+    if (best.el) best.el.classList.add('holding');
+  } else {
+    best.hit = true;
+    if (best.el) { best.el.remove(); best.el = null; }
+  }
 
   combo++;
   if (combo > maxCombo) maxCombo = combo;
@@ -732,7 +810,7 @@ function onLaneHit(lane) {
     perfCnt++;
     const pts = Math.round(100 * mult);
     score += pts;
-    showJudg('PERFECT!', 'perfect', lane);
+    showJudg(isHold ? 'HOLD▼' : 'PERFECT!', 'perfect', lane);
     showScorePopup(pts, 'perfect', lane);
     hitSfx('perfect');
     addTimingTick(timing, 'perfect');
@@ -740,7 +818,7 @@ function onLaneHit(lane) {
     goodCnt++;
     const pts = Math.round(50 * mult);
     score += pts;
-    showJudg('GOOD', 'good', lane, timing);
+    showJudg(isHold ? 'HOLD▼' : 'GOOD', 'good', lane, timing);
     showScorePopup(pts, 'good', lane);
     hitSfx('good');
     addTimingTick(timing, 'good');
@@ -769,6 +847,19 @@ function registerMiss(lane) {
     phase = 'gameover';
     showGameOver();
     setTimeout(() => endGame(), 950);
+  }
+}
+
+function onLaneRelease(lane) {
+  if (phase !== 'playing') return;
+  heldLanes[lane] = false;
+  for (const note of beatmap.notes) {
+    if (note.type === 'hold' && note.holding && note.lane === lane) {
+      note.holding = false;
+      if (note.el) note.el.classList.remove('holding');
+      // Mark as hit so the miss check won't fire; hold bonus not earned
+      note.hit = true;
+    }
   }
 }
 
@@ -1213,7 +1304,9 @@ window.goNext = function () { if (curLevel < 10) startGame(curLevel + 1); };
 //  EVENT LISTENERS
 // ════════════════════════════════════════════════
 laneEls.forEach((lane, i) => {
-  lane.addEventListener('pointerdown', e => { e.preventDefault(); onLaneHit(i); });
+  lane.addEventListener('pointerdown',  e => { e.preventDefault(); onLaneHit(i); });
+  lane.addEventListener('pointerup',    e => { e.preventDefault(); onLaneRelease(i); });
+  lane.addEventListener('pointerleave', e => { onLaneRelease(i); });
 });
 
 const KEY_MAP = { KeyD:0, KeyF:1, KeyJ:2, KeyK:3, ArrowLeft:0, ArrowDown:1, ArrowUp:2, ArrowRight:3 };
@@ -1227,7 +1320,7 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => {
   const lane = KEY_MAP[e.code];
-  if (lane !== undefined) laneEls[lane].classList.remove('lit');
+  if (lane !== undefined) { laneEls[lane].classList.remove('lit'); onLaneRelease(lane); }
 });
 
 $('pause-btn').addEventListener('click', togglePause);
