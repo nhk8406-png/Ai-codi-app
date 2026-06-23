@@ -9,9 +9,9 @@
 body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;height:100dvh;overflow:hidden;display:flex;align-items:center;justify-content:center;}
 
 /* ── SCREENS ── */
-.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity .22s ease;}
-.screen.active{opacity:1;pointer-events:auto;}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;}
+.screen.active{display:flex;animation:screenIn .2s ease both;}
+@keyframes screenIn{from{opacity:0;}to{opacity:1;}}
 
 /* ── TITLE ── */
 #screen-title{background:radial-gradient(ellipse at 50% 0%,#1a0a3e 0%,#08080f 70%);overflow:hidden;}
