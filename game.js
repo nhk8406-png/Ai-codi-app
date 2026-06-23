@@ -350,6 +350,9 @@ const GOOD_W   = 0.145;
 const MISS_CUT = 0.22;
 const HP_DRAIN = 5;   // HP lost per miss (dead at 0 = 20 misses)
 
+let speedMult = 1.0;   // note approach speed multiplier (higher = faster fall)
+let volMuted  = false;
+
 let progress = JSON.parse(localStorage.getItem('rmProgress') || '{}');
 
 // ════════════════════════════════════════════════
@@ -581,6 +584,7 @@ function gameLoop(ts) {
   drawBackground(beatPhase);
 
   // ── Update notes ──
+  const travelTime = TRAVEL / speedMult;
   for (const note of beatmap.notes) {
     if (note.hit || note.missed) {
       if (note.el) { note.el.remove(); note.el = null; }
@@ -588,14 +592,14 @@ function gameLoop(ts) {
     }
     const until = note.time - gameT;
 
-    if (!note.el && until <= TRAVEL) {
+    if (!note.el && until <= travelTime) {
       note.el = document.createElement('div');
       note.el.className = `note note-${note.lane}`;
       laneEls[note.lane].appendChild(note.el);
     }
 
     if (note.el) {
-      const prog = 1 - until / TRAVEL;
+      const prog = 1 - until / travelTime;
       note.el.style.top = (prog * hz - 23) + 'px';
     }
 
@@ -675,8 +679,12 @@ function registerMiss(lane) {
   sg.classList.remove('shake');
   void sg.offsetWidth;
   sg.classList.add('shake');
-  // HP = 0 → early fail
-  if (hp <= 0) { setTimeout(() => endGame(), 300); }
+  // HP = 0 → early fail with game over overlay
+  if (hp <= 0) {
+    phase = 'gameover';
+    showGameOver();
+    setTimeout(() => endGame(), 950);
+  }
 }
 
 // ════════════════════════════════════════════════
@@ -838,6 +846,37 @@ function endGame() {
 
   showScreen('result');
 }
+
+// ════════════════════════════════════════════════
+//  GAME OVER OVERLAY
+// ════════════════════════════════════════════════
+function showGameOver() {
+  if (raf) cancelAnimationFrame(raf);
+  const ov = $('game-over-overlay');
+  if (!ov) return;
+  ov.classList.remove('active');
+  void ov.offsetWidth;
+  ov.classList.add('active');
+  setTimeout(() => ov.classList.remove('active'), 940);
+}
+
+// ════════════════════════════════════════════════
+//  SETTINGS: SPEED & VOLUME
+// ════════════════════════════════════════════════
+window.setSpeed = function(v) {
+  speedMult = v;
+  document.querySelectorAll('.spd-btn').forEach(b => {
+    b.classList.toggle('spd-active', parseFloat(b.dataset.v) === v);
+  });
+};
+
+window.toggleVol = function() {
+  initAC();
+  volMuted = !volMuted;
+  if (mGain) mGain.gain.value = volMuted ? 0 : 0.62;
+  const btn = $('vol-btn');
+  if (btn) { btn.textContent = volMuted ? '🔇' : '🔊'; btn.classList.toggle('muted', volMuted); }
+};
 
 // ════════════════════════════════════════════════
 //  GLOBAL BUTTONS

@@ -208,6 +208,40 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
 .btn:active{transform:scale(.93);}
 .btn-sec{background:rgba(255,255,255,.1);color:#fff;}
 .btn-pri{background:linear-gradient(135deg,#4d96ff,#6bcb77);color:#fff;}
+
+/* ── SETTINGS ROW (title screen) ── */
+#settings-row{display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;}
+.setting-group{display:flex;align-items:center;gap:6px;}
+.setting-label{font-size:0.65rem;color:rgba(255,255,255,.35);letter-spacing:1.5px;white-space:nowrap;}
+.speed-btns{display:flex;gap:4px;}
+.spd-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  color:rgba(255,255,255,.45);border-radius:8px;padding:4px 9px;font-size:0.7rem;
+  font-weight:700;cursor:pointer;transition:all .15s;touch-action:manipulation;}
+.spd-btn:hover{background:rgba(255,255,255,.13);}
+.spd-btn.spd-active{background:rgba(77,150,255,.22);border-color:#4d96ff;color:#4d96ff;}
+#vol-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  color:rgba(255,255,255,.6);border-radius:8px;padding:4px 11px;font-size:1rem;
+  cursor:pointer;transition:all .15s;touch-action:manipulation;}
+#vol-btn.muted{opacity:.35;}
+
+/* ── GAME OVER OVERLAY ── */
+#game-over-overlay{position:absolute;inset:0;display:none;flex-direction:column;
+  align-items:center;justify-content:center;gap:8px;z-index:100;pointer-events:none;}
+#game-over-overlay.active{display:flex;}
+#game-over-overlay::before{content:'';position:absolute;inset:0;
+  animation:goFlash .9s ease-out forwards;}
+@keyframes goFlash{
+  0%{background:rgba(255,30,30,.7);}
+  35%{background:rgba(200,0,0,.4);}
+  100%{background:rgba(0,0,0,.55);}
+}
+.go-text{position:relative;font-size:3rem;font-weight:900;color:#ff3333;
+  text-shadow:0 0 50px rgba(255,0,0,1),0 0 20px rgba(255,0,0,.8);letter-spacing:4px;
+  animation:goTextPop .35s cubic-bezier(.2,1.6,.4,1) forwards;}
+@keyframes goTextPop{0%{transform:scale(2.5);opacity:0;}100%{transform:scale(1);opacity:1;}}
+.go-sub{position:relative;font-size:0.85rem;color:rgba(255,180,180,.7);letter-spacing:3px;
+  animation:goSubFade .5s .15s ease-out both;}
+@keyframes goSubFade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 </style>
 </head>
 <body>
@@ -217,6 +251,18 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
   <div class="logo">리듬마스터</div>
   <div class="logo-sub">RHYTHM MASTER</div>
   <div class="beat-bars" id="beat-bars"></div>
+  <div id="settings-row">
+    <div class="setting-group">
+      <span class="setting-label">노트 속도</span>
+      <div class="speed-btns">
+        <button class="spd-btn" data-v="0.75" onclick="setSpeed(0.75)">0.75×</button>
+        <button class="spd-btn spd-active" data-v="1" onclick="setSpeed(1)">1×</button>
+        <button class="spd-btn" data-v="1.5" onclick="setSpeed(1.5)">1.5×</button>
+        <button class="spd-btn" data-v="2" onclick="setSpeed(2)">2×</button>
+      </div>
+    </div>
+    <button id="vol-btn" onclick="toggleVol()">🔊</button>
+  </div>
   <div class="level-grid" id="level-grid"></div>
   <div class="hint">키보드: D &nbsp;F &nbsp;J &nbsp;K &nbsp;|&nbsp; 마우스 / 터치로도 플레이</div>
 </div>
@@ -258,6 +304,10 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
       <div class="hit-zone"></div><div class="lane-glow"></div>
       <div class="lane-key">K</div>
     </div>
+  </div>
+  <div id="game-over-overlay">
+    <div class="go-text">GAME OVER</div>
+    <div class="go-sub">HP 소진</div>
   </div>
   <div id="countdown"></div>
   <button id="pause-btn">일시정지</button>
