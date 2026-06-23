@@ -341,6 +341,7 @@ let score = 0, combo = 0, maxCombo = 0;
 let perfCnt = 0, goodCnt = 0, missCnt = 0;
 let hp = 100;
 let feverActive = false;
+let autoPlay = false;
 let beatmap = null;
 let t0 = 0, pausedAt = 0, gameT = 0;
 let raf = null;
@@ -499,6 +500,17 @@ function buildTitle() {
     grid.appendChild(btn);
   }
   buildAchievementBadges();
+  updateTitleStats();
+}
+
+function updateTitleStats() {
+  const el = $('title-stats');
+  if (!el) return;
+  const s = JSON.parse(localStorage.getItem('rmStats') || '{}');
+  if (!s.totalPlays) { el.style.display = 'none'; return; }
+  const totalNotes = (s.totalPerfect || 0) + (s.totalGood || 0) + (s.totalMiss || 0);
+  el.style.display = 'block';
+  el.textContent = `플레이 ${s.totalPlays}회 · 최고 콤보 ${s.bestCombo || 0} · 노트 ${totalNotes.toLocaleString()}개`;
 }
 
 // ════════════════════════════════════════════════
@@ -648,6 +660,15 @@ function gameLoop(ts) {
   }
 
   $('progress-bar').style.width = Math.min(gameT / beatmap.totalTime * 100, 100) + '%';
+
+  // Auto-play: hit every note at its exact time
+  if (autoPlay) {
+    for (const note of beatmap.notes) {
+      if (!note.hit && !note.missed && note.time - gameT < 0.03 && note.time - gameT > -0.03) {
+        onLaneHit(note.lane);
+      }
+    }
+  }
 
   if (beatmap.notes.every(n => n.hit || n.missed) || gameT > beatmap.totalTime + 1.8) {
     endGame(); return;
@@ -861,9 +882,38 @@ function endGame() {
   const stars   = (missCnt === 0 && acc >= 95) ? 3 : acc >= 80 ? 2 : acc >= 60 ? 1 : 0;
   const cleared = acc >= 60;
 
-  const prev = progress[curLevel] || {};
-  progress[curLevel] = { cleared, stars: Math.max(prev.stars || 0, stars), best: Math.max(prev.best || 0, score) };
-  localStorage.setItem('rmProgress', JSON.stringify(progress));
+  let prev = {};
+  if (!autoPlay) {
+    prev = progress[curLevel] || {};
+    progress[curLevel] = { cleared, stars: Math.max(prev.stars || 0, stars), best: Math.max(prev.best || 0, score) };
+    localStorage.setItem('rmProgress', JSON.stringify(progress));
+    const gStats = JSON.parse(localStorage.getItem('rmStats') || '{}');
+    gStats.totalPlays   = (gStats.totalPlays   || 0) + 1;
+    gStats.totalPerfect = (gStats.totalPerfect || 0) + perfCnt;
+    gStats.totalGood    = (gStats.totalGood    || 0) + goodCnt;
+    gStats.totalMiss    = (gStats.totalMiss    || 0) + missCnt;
+    gStats.bestCombo    = Math.max(gStats.bestCombo || 0, maxCombo);
+    localStorage.setItem('rmStats', JSON.stringify(gStats));
+  }
+
+  clearFever();
+  if (cleared && !autoPlay) {
+    if (stars >= 3)          unlockAchievement('stars3');
+    if (grade === 'S')       unlockAchievement('srank');
+    if (acc >= 95)           unlockAchievement('acc95');
+    if (speedMult >= 2)      unlockAchievement('speed2x');
+    if (curLevel === 10)     unlockAchievement('master');
+  }
+
+  // Demo mode: play jingle and return to title (no result screen)
+  if (autoPlay) {
+    autoPlay = false;
+    const isDemoFC = missCnt === 0;
+    playJingle(isDemoFC ? 'fc' : cleared ? 'clear' : 'fail');
+    if (isDemoFC || stars >= 3) setTimeout(spawnConfetti, 650);
+    setTimeout(() => window.goTitle(), 2400);
+    return;
+  }
 
   const isFC = missCnt === 0;
   const isNewRecord = cleared && score > 0 && score > (prev.best || 0);
@@ -883,15 +933,6 @@ function endGame() {
   const nb = $('next-btn');
   if (cleared && curLevel < 10) { nb.style.display = ''; nb.textContent = `레벨 ${curLevel + 1} →`; }
   else { nb.style.display = 'none'; }
-
-  clearFever();
-  if (cleared) {
-    if (stars >= 3)          unlockAchievement('stars3');
-    if (grade === 'S')       unlockAchievement('srank');
-    if (acc >= 95)           unlockAchievement('acc95');
-    if (speedMult >= 2)      unlockAchievement('speed2x');
-    if (curLevel === 10)     unlockAchievement('master');
-  }
 
   // Prep animated elements before screen switch
   $('res-score').textContent = '0';
@@ -1113,6 +1154,11 @@ window.goTitle = function () {
   if (raf) cancelAnimationFrame(raf);
   gameArea.querySelectorAll('.note,.judg,.pt').forEach(e => e.remove());
   phase = 'title'; buildTitle(); showScreen('title');
+};
+
+window.startDemo = function() {
+  autoPlay = true;
+  startGame(1);
 };
 window.retry  = function () { startGame(curLevel); };
 window.goNext = function () { if (curLevel < 10) startGame(curLevel + 1); };

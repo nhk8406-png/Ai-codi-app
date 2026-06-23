@@ -290,6 +290,13 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
   100%{transform:translate(-50%,-70%) scale(.8);opacity:0;}
 }
 
+#demo-btn{background:rgba(255,217,61,.08);border:1px solid rgba(255,217,61,.28);
+  color:#ffd93d;border-radius:8px;padding:4px 10px;font-size:0.72rem;
+  font-weight:700;cursor:pointer;transition:all .15s;touch-action:manipulation;}
+#demo-btn:hover{background:rgba(255,217,61,.18);}
+#title-stats{font-size:.6rem;color:rgba(255,255,255,.22);letter-spacing:1px;
+  margin-top:6px;text-align:center;display:none;}
+
 /* ── ACHIEVEMENTS ── */
 #ach-row{display:none;flex-wrap:wrap;gap:8px;justify-content:center;
   margin-top:10px;max-width:360px;padding:0 10px;}
@@ -369,9 +376,11 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
       </div>
     </div>
     <button id="vol-btn" onclick="toggleVol()">🔊</button>
+    <button id="demo-btn" onclick="startDemo()">▶ 데모</button>
   </div>
   <div class="level-grid" id="level-grid"></div>
   <div id="ach-row"></div>
+  <div id="title-stats"></div>
   <div class="hint">키보드: D &nbsp;F &nbsp;J &nbsp;K &nbsp;|&nbsp; 마우스 / 터치로도 플레이</div>
 </div>
 
