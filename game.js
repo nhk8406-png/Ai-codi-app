@@ -421,6 +421,69 @@ function hitZoneY() { return gameArea.clientHeight - 82; }
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $('screen-' + name).classList.add('active');
+  if (name === 'title') initTitleCanvas();
+  else stopTitleCanvas();
+}
+
+// ════════════════════════════════════════════════
+//  TITLE CANVAS ANIMATION
+// ════════════════════════════════════════════════
+let titleAnim = null;
+const titleNotes = [];
+const MUSIC_SYMS = ['♩','♪','♫','♬'];
+const MUSIC_COLS = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#d400ff','#ff8c42'];
+
+function makeTitleNote(atBottom) {
+  const tc = $('title-canvas');
+  const w = tc ? tc.width : window.innerWidth, h = tc ? tc.height : window.innerHeight;
+  return {
+    x: 8 + Math.random() * (w - 16),
+    y: atBottom ? h + 16 + Math.random() * h * 0.4 : Math.random() * h,
+    sym: MUSIC_SYMS[Math.floor(Math.random() * MUSIC_SYMS.length)],
+    color: MUSIC_COLS[Math.floor(Math.random() * MUSIC_COLS.length)],
+    size: 10 + Math.random() * 18,
+    speed: 0.2 + Math.random() * 0.32,
+    drift: (Math.random() - 0.5) * 0.18,
+    alpha: 0.04 + Math.random() * 0.09,
+  };
+}
+
+function initTitleCanvas() {
+  const tc = $('title-canvas');
+  if (!tc) return;
+  const tCtx = tc.getContext('2d');
+  tc.width  = window.innerWidth;
+  tc.height = window.innerHeight;
+  if (titleAnim) cancelAnimationFrame(titleAnim);
+  if (titleNotes.length === 0) {
+    for (let i = 0; i < 22; i++) titleNotes.push(makeTitleNote(false));
+  }
+  function draw() {
+    const w = tc.width, h = tc.height;
+    tCtx.clearRect(0, 0, w, h);
+    for (let i = titleNotes.length - 1; i >= 0; i--) {
+      const n = titleNotes[i];
+      n.y -= n.speed; n.x += n.drift;
+      tCtx.save();
+      tCtx.globalAlpha = n.alpha;
+      tCtx.font = `${n.size}px serif`;
+      tCtx.fillStyle = n.color;
+      tCtx.textAlign = 'center';
+      tCtx.textBaseline = 'middle';
+      tCtx.fillText(n.sym, n.x, n.y);
+      tCtx.restore();
+      if (n.y < -20) { titleNotes.splice(i, 1); titleNotes.push(makeTitleNote(true)); }
+    }
+    titleAnim = requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function stopTitleCanvas() {
+  if (titleAnim) { cancelAnimationFrame(titleAnim); titleAnim = null; }
+  titleNotes.length = 0;
+  const tc = $('title-canvas');
+  if (tc) tc.getContext('2d').clearRect(0, 0, tc.width, tc.height);
 }
 
 // ════════════════════════════════════════════════
@@ -608,7 +671,8 @@ function startGame(level) {
 
   gameArea.querySelectorAll('.note,.judg,.pt').forEach(e => e.remove());
   showScreen('game');
-  countdown(3, launchGame);
+  if (level === 10) showBossIntro(() => countdown(3, launchGame));
+  else countdown(3, launchGame);
 }
 
 function launchGame() {
@@ -617,6 +681,27 @@ function launchGame() {
   const acStart = AC.currentTime + 0.06;
   scheduleAudioForLevel(curLevel - 1, acStart);
   raf = requestAnimationFrame(gameLoop);
+}
+
+function showBossIntro(cb) {
+  const el = document.createElement('div');
+  el.id = 'boss-intro';
+  el.innerHTML =
+    '<div class="bi-spark">⚡</div>' +
+    '<div class="bi-label">BOSS STAGE</div>' +
+    '<div class="bi-name">리듬마스터 BOSS</div>' +
+    '<div class="bi-bpm">160 BPM</div>';
+  $('screen-game').appendChild(el);
+  if (AC) {
+    const t = AC.currentTime + 0.06;
+    playBass(t, N.C2, 0.5); playBass(t + 0.14, N.G2, 0.42); playBass(t + 0.26, N.C3, 0.36);
+    playLead(t + 0.4, N.C5, 0.42, 0.38); playLead(t + 0.6, N.G5, 0.52, 0.44);
+    playPad(t + 0.2, [N.C4, N.Eb4, N.G4, N.Bb4], 1.2);
+  }
+  setTimeout(() => {
+    el.classList.add('bi-out');
+    el.addEventListener('animationend', () => { el.remove(); cb(); }, { once: true });
+  }, 1750);
 }
 
 function countdown(n, cb) {
@@ -633,11 +718,13 @@ function togglePause() {
   if (phase === 'playing') {
     phase = 'paused'; pausedAt = performance.now();
     if (raf) cancelAnimationFrame(raf);
+    if (AC && AC.state === 'running') AC.suspend();
     $('po-lv').textContent = `LEVEL ${curLevel} — ${LV[curLevel-1].title}`;
     $('pause-overlay').classList.add('active');
   } else if (phase === 'paused') {
     phase = 'playing'; t0 += performance.now() - pausedAt;
     $('pause-overlay').classList.remove('active');
+    if (AC && AC.state === 'suspended') AC.resume();
     raf = requestAnimationFrame(gameLoop);
   }
 }
@@ -1350,6 +1437,7 @@ function buildBeatBars() {
 buildBeatBars();
 buildTitle();
 showScreen('title');
+initTitleCanvas();
 
 // Apply persisted settings to title UI
 document.querySelectorAll('.spd-btn').forEach(b => {

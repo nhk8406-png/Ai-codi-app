@@ -9,8 +9,9 @@
 body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;height:100dvh;overflow:hidden;display:flex;align-items:center;justify-content:center;}
 
 /* ── SCREENS ── */
-.screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;}
-.screen.active{display:flex;}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .22s ease;}
+.screen.active{opacity:1;pointer-events:auto;}
 
 /* ── TITLE ── */
 #screen-title{background:radial-gradient(ellipse at 50% 0%,#1a0a3e 0%,#08080f 70%);overflow:hidden;}
@@ -371,6 +372,23 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
 #game-over-overlay{position:absolute;inset:0;display:none;flex-direction:column;
   align-items:center;justify-content:center;gap:8px;z-index:100;pointer-events:none;}
 #game-over-overlay.active{display:flex;}
+
+/* ── TITLE CANVAS ── */
+#title-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+
+/* ── BOSS INTRO ── */
+#boss-intro{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:200;
+  background:rgba(0,0,0,.95);animation:bossIn .45s ease-out forwards;}
+#boss-intro.bi-out{animation:bossOut .36s ease-in forwards;}
+@keyframes bossIn{from{opacity:0;transform:scale(1.08);}to{opacity:1;transform:none;}}
+@keyframes bossOut{to{opacity:0;transform:scale(.91);}}
+.bi-spark{font-size:3.2rem;animation:biSpark .52s ease-in-out infinite alternate;}
+@keyframes biSpark{from{opacity:.55;transform:scale(.9);}to{opacity:1;transform:scale(1.18);}}
+.bi-label{font-size:2rem;font-weight:900;letter-spacing:5px;color:#d400ff;
+  text-shadow:0 0 30px #d400ff,0 0 70px rgba(212,0,255,.45);margin-top:12px;}
+.bi-name{font-size:.9rem;color:rgba(255,255,255,.48);letter-spacing:3px;margin-top:10px;}
+.bi-bpm{font-size:.72rem;color:#ff6b6b;letter-spacing:2px;margin-top:6px;}
 #game-over-overlay::before{content:'';position:absolute;inset:0;
   animation:goFlash .9s ease-out forwards;}
 @keyframes goFlash{
@@ -391,6 +409,7 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
 
 <!-- ══ TITLE ══ -->
 <div id="screen-title" class="screen active">
+  <canvas id="title-canvas"></canvas>
   <div class="logo">리듬마스터</div>
   <div class="logo-sub">RHYTHM MASTER</div>
   <div class="beat-bars" id="beat-bars"></div>
