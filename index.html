@@ -194,10 +194,27 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
 /* ── RESULT ── */
 #screen-result{background:radial-gradient(ellipse at 50% 30%,#1a0832 0%,#08080f 70%);padding:20px;text-align:center;}
 .res-title{font-size:2.2rem;font-weight:900;margin-bottom:4px;}
-.res-lv{color:rgba(255,255,255,.4);font-size:.8rem;letter-spacing:3px;margin-bottom:20px;}
-.res-stars{font-size:2.8rem;margin-bottom:12px;letter-spacing:4px;}
+.res-lv{color:rgba(255,255,255,.4);font-size:.8rem;letter-spacing:3px;margin-bottom:16px;}
+.res-stars{font-size:2.8rem;margin-bottom:8px;letter-spacing:4px;min-height:3.5rem;display:flex;align-items:center;justify-content:center;gap:6px;}
+.res-star{display:inline-block;opacity:0;transition:none;}
+.res-star.empty{opacity:.22;}
+@keyframes starPop{
+  0%{transform:scale(0) rotate(-25deg);opacity:0;}
+  55%{transform:scale(1.55) rotate(8deg);opacity:1;}
+  100%{transform:scale(1) rotate(0);opacity:1;}
+}
+.res-star.pop{animation:starPop .38s cubic-bezier(.15,1.4,.4,1) forwards;}
 .res-score{font-size:3rem;font-weight:900;color:#ffd93d;}
+#new-record{font-size:.72rem;font-weight:900;letter-spacing:3px;color:#ffd93d;
+  margin:-2px 0 8px;opacity:0;pointer-events:none;min-height:1.2em;}
+#new-record.show{animation:newRecPop .45s .08s cubic-bezier(.2,1.5,.4,1) both;}
+@keyframes newRecPop{from{transform:scale(0) translateY(10px);opacity:0;}to{transform:none;opacity:1;}}
 .res-grade{font-size:5rem;font-weight:900;margin:4px 0 16px;}
+#res-grade.animate{animation:gradeReveal .5s cubic-bezier(.17,1.5,.6,1) both;}
+@keyframes gradeReveal{
+  0%{transform:scale(5) rotate(-10deg);opacity:0;}
+  100%{transform:scale(1) rotate(0);opacity:1;}
+}
 .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:300px;margin:0 auto 24px;}
 .stat{background:rgba(255,255,255,.05);border-radius:12px;padding:10px 8px;}
 .stat-l{font-size:.62rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;}
@@ -208,6 +225,13 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
 .btn:active{transform:scale(.93);}
 .btn-sec{background:rgba(255,255,255,.1);color:#fff;}
 .btn-pri{background:linear-gradient(135deg,#4d96ff,#6bcb77);color:#fff;}
+/* Confetti */
+.confetti-p{position:fixed;top:-12px;pointer-events:none;z-index:300;
+  animation:confettiFall var(--dur) var(--del) ease-in forwards;}
+@keyframes confettiFall{
+  0%{transform:translateX(0) rotate(0);opacity:1;}
+  100%{transform:translateX(var(--dx)) translateY(108vh) rotate(var(--rot));opacity:0;}
+}
 
 /* ── SETTINGS ROW (title screen) ── */
 #settings-row{display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;}
@@ -317,8 +341,9 @@ body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;h
 <div id="screen-result" class="screen">
   <div class="res-title" id="res-title">클리어!</div>
   <div class="res-lv" id="res-lv">LEVEL 1</div>
-  <div class="res-stars" id="res-stars">★★★</div>
+  <div class="res-stars" id="res-stars"></div>
   <div class="res-score" id="res-score">0</div>
+  <div id="new-record"></div>
   <div class="res-grade" id="res-grade">S</div>
   <div class="stats-grid">
     <div class="stat"><div class="stat-l">Perfect</div><div class="stat-v" id="s-perf" style="color:#ffd93d">0</div></div>

@@ -822,13 +822,12 @@ function endGame() {
   localStorage.setItem('rmProgress', JSON.stringify(progress));
 
   const isFC = missCnt === 0;
+  const isNewRecord = cleared && score > 0 && score > (prev.best || 0);
+
+  // Static text (shown immediately)
   $('res-title').textContent  = isFC ? 'FULL COMBO!' : (cleared ? 'CLEAR!' : 'FAILED');
   $('res-title').style.color  = isFC ? '#ffd93d' : (cleared ? '#6bcb77' : '#ff6b6b');
   $('res-lv').textContent     = `LEVEL ${curLevel} — ${LV[curLevel-1].title}`;
-  $('res-stars').textContent  = '★'.repeat(stars) + '☆'.repeat(3 - stars);
-  $('res-score').textContent  = score.toLocaleString();
-  $('res-grade').textContent  = grade;
-  $('res-grade').style.color  = gColor;
   $('s-perf').textContent     = perfCnt;
   $('s-good').textContent     = goodCnt;
   $('s-miss').textContent     = missCnt;
@@ -841,10 +840,87 @@ function endGame() {
   if (cleared && curLevel < 10) { nb.style.display = ''; nb.textContent = `레벨 ${curLevel + 1} →`; }
   else { nb.style.display = 'none'; }
 
-  // Jingle
-  playJingle(isFC ? 'fc' : cleared ? 'clear' : 'fail');
+  // Prep animated elements before screen switch
+  $('res-score').textContent = '0';
+  $('res-stars').innerHTML   = '';
+  const nrEl = $('new-record');
+  if (nrEl) { nrEl.textContent = ''; nrEl.classList.remove('show'); }
+  const gradeEl = $('res-grade');
+  gradeEl.textContent = grade;
+  gradeEl.style.color = gColor;
+  gradeEl.classList.remove('animate');
 
+  playJingle(isFC ? 'fc' : cleared ? 'clear' : 'fail');
   showScreen('result');
+
+  // ── Grade zoom-in ──
+  void gradeEl.offsetWidth;
+  gradeEl.classList.add('animate');
+
+  // ── Stars reveal one by one ──
+  const starFreqs = [523.25, 783.99, 1046.50];
+  for (let i = 1; i <= 3; i++) {
+    const s = document.createElement('span');
+    s.className = 'res-star ' + (i <= stars ? 'earned' : 'empty');
+    s.textContent = i <= stars ? '★' : '☆';
+    s.style.color = i <= stars ? '#ffd93d' : '';
+    if (i > stars) s.style.opacity = '0.22';
+    $('res-stars').appendChild(s);
+    if (i <= stars) {
+      setTimeout(() => {
+        s.classList.add('pop');
+        if (AC) playLead(AC.currentTime + 0.01, starFreqs[i - 1], 0.13, 0.28);
+      }, 280 + i * 210);
+    }
+  }
+
+  // ── Score count-up ──
+  const finalScore = score;
+  const countDur = Math.min(1400, 500 + finalScore / 400);
+  let countStart = null;
+  function animScore(ts) {
+    if (countStart === null) countStart = ts + 520;
+    if (ts < countStart) { requestAnimationFrame(animScore); return; }
+    const t = Math.min((ts - countStart) / countDur, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    $('res-score').textContent = Math.round(finalScore * ease).toLocaleString();
+    if (t < 1) requestAnimationFrame(animScore);
+  }
+  requestAnimationFrame(animScore);
+
+  // ── NEW RECORD badge ──
+  if (nrEl && isNewRecord) {
+    nrEl.textContent = '★ NEW RECORD ★';
+    setTimeout(() => nrEl.classList.add('show'), 950);
+  }
+
+  // ── Confetti (FC or 3-star) ──
+  if (isFC || stars >= 3) setTimeout(spawnConfetti, 650);
+}
+
+function spawnConfetti() {
+  const colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#d400ff','#ff8c42','#4dcfff','#fff'];
+  for (let i = 0; i < 48; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetti-p';
+      const isCircle = Math.random() > 0.45;
+      const spin = (Math.random() > 0.5 ? '' : '-') + (360 + Math.floor(Math.random() * 360)) + 'deg';
+      el.style.cssText = [
+        `left:${Math.random() * 100}vw`,
+        `width:${5 + Math.random() * 7}px`,
+        `height:${5 + Math.random() * 7}px`,
+        `background:${colors[Math.floor(Math.random() * colors.length)]}`,
+        `border-radius:${isCircle ? '50%' : '3px'}`,
+        `--dur:${1.1 + Math.random() * 1.2}s`,
+        `--del:${Math.random() * 0.35}s`,
+        `--dx:${(Math.random() - 0.5) * 150}px`,
+        `--rot:${spin}`,
+      ].join(';');
+      document.body.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }, i * 20);
+  }
 }
 
 // ════════════════════════════════════════════════
