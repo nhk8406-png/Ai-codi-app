@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
+<title>리듬마스터</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
+body{background:#08080f;color:#fff;font-family:'Segoe UI',system-ui,sans-serif;height:100dvh;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+
+/* ── SCREENS ── */
+.screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;}
+.screen.active{display:flex;}
+
+/* ── TITLE ── */
+#screen-title{background:radial-gradient(ellipse at 50% 0%,#1a0a3e 0%,#08080f 70%);}
+.logo{font-size:clamp(2rem,8vw,3.5rem);font-weight:900;letter-spacing:6px;
+  background:linear-gradient(90deg,#ff6b6b,#ffd93d,#6bcb77,#4d96ff,#d400ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 20px rgba(180,100,255,0.6));}
+.logo-sub{color:rgba(255,255,255,0.35);font-size:0.75rem;letter-spacing:4px;margin:6px 0 32px;}
+.level-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:10px;max-width:360px;width:100%;}
+.lbtn{width:100%;aspect-ratio:1;border:2px solid var(--c);border-radius:14px;background:transparent;
+  color:#fff;font-size:1.1rem;font-weight:800;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;transition:transform .15s,background .15s;
+  position:relative;overflow:hidden;}
+.lbtn:hover{background:color-mix(in srgb,var(--c) 15%,transparent);}
+.lbtn:active{transform:scale(.88);}
+.lbtn.locked{--c:#333;color:#444;cursor:not-allowed;}
+.lbtn .lv-stars{font-size:0.42rem;letter-spacing:2px;opacity:.8;}
+.hint{color:rgba(255,255,255,0.25);font-size:0.72rem;margin-top:18px;letter-spacing:1px;}
+
+/* ── GAME ── */
+#screen-game{background:#06060e;padding:0;position:relative;}
+#progress-wrap{position:absolute;top:0;left:0;right:0;height:3px;background:rgba(255,255,255,.08);z-index:20;}
+#progress-bar{height:100%;background:linear-gradient(90deg,#4d96ff,#d400ff);width:0%;transition:width .08s linear;}
+#hud{position:absolute;top:4px;left:0;right:0;height:72px;display:flex;
+  align-items:center;justify-content:space-between;padding:8px 16px;
+  background:linear-gradient(to bottom,rgba(0,0,0,.7),transparent);z-index:10;pointer-events:none;}
+#score-disp{font-size:1.6rem;font-weight:800;color:#ffd93d;min-width:110px;}
+#center-hud{text-align:center;}
+#lv-disp{font-size:0.65rem;color:rgba(255,255,255,.35);letter-spacing:3px;}
+#combo-disp{font-size:2.2rem;font-weight:900;color:#ff6b6b;
+  text-shadow:0 0 16px rgba(255,107,107,.9);transition:transform .08s;min-height:44px;}
+#combo-disp.bump{transform:scale(1.35);}
+#acc-disp{font-size:1rem;color:rgba(255,255,255,.6);min-width:70px;text-align:right;}
+#pause-btn{position:absolute;top:12px;right:14px;background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5);border-radius:8px;
+  padding:5px 10px;cursor:pointer;font-size:0.75rem;z-index:15;touch-action:manipulation;}
+
+/* ── GAME AREA / LANES ── */
+#game-area{position:absolute;inset:0;display:flex;max-width:420px;left:50%;transform:translateX(-50%);right:auto;}
+.lane{flex:1;position:relative;border-right:1px solid rgba(255,255,255,.04);overflow:hidden;
+  cursor:pointer;touch-action:manipulation;}
+.lane:last-child{border-right:none;}
+.lane-key{position:absolute;bottom:14px;width:100%;text-align:center;font-size:0.72rem;font-weight:700;
+  opacity:.25;pointer-events:none;}
+
+/* Hit zone */
+.hit-zone{position:absolute;bottom:80px;left:8%;right:8%;height:5px;border-radius:3px;
+  opacity:.4;pointer-events:none;transition:opacity .1s;}
+.lane-0 .hit-zone{background:#ff6b6b;}
+.lane-1 .hit-zone{background:#ffd93d;}
+.lane-2 .hit-zone{background:#6bcb77;}
+.lane-3 .hit-zone{background:#4d96ff;}
+.lane.lit .hit-zone{opacity:1;}
+.lane-glow{position:absolute;bottom:0;left:0;right:0;height:90px;
+  pointer-events:none;opacity:0;transition:opacity .06s;}
+.lane.lit .lane-glow{opacity:1;}
+.lane-0 .lane-glow{background:linear-gradient(to top,rgba(255,107,107,.25),transparent);}
+.lane-1 .lane-glow{background:linear-gradient(to top,rgba(255,217,61,.25),transparent);}
+.lane-2 .lane-glow{background:linear-gradient(to top,rgba(107,203,119,.25),transparent);}
+.lane-3 .lane-glow{background:linear-gradient(to top,rgba(77,150,255,.25),transparent);}
+
+/* Notes */
+.note{position:absolute;left:8%;width:84%;height:46px;border-radius:9px;
+  pointer-events:none;will-change:top;}
+.note-0{background:#ff6b6b;box-shadow:0 0 14px rgba(255,107,107,.7);}
+.note-1{background:#ffd93d;box-shadow:0 0 14px rgba(255,217,61,.7);}
+.note-2{background:#6bcb77;box-shadow:0 0 14px rgba(107,203,119,.7);}
+.note-3{background:#4d96ff;box-shadow:0 0 14px rgba(77,150,255,.7);}
+.note::after{content:'';position:absolute;top:4px;left:10%;right:10%;height:8px;
+  border-radius:4px;background:rgba(255,255,255,.35);}
+
+/* Judgment text */
+.judg{position:absolute;width:100%;text-align:center;font-size:1rem;font-weight:900;
+  pointer-events:none;animation:judgeAnim .55s ease-out forwards;}
+@keyframes judgeAnim{
+  0%{transform:translateY(0) scale(.5);opacity:1;}
+  60%{transform:translateY(-40px) scale(1.1);opacity:1;}
+  100%{transform:translateY(-70px) scale(.9);opacity:0;}
+}
+.judg-perfect{color:#ffd93d;}
+.judg-good{color:#6bcb77;}
+.judg-miss{color:rgba(255,107,107,.7);}
+
+/* Particles */
+.pt{position:absolute;width:7px;height:7px;border-radius:50%;pointer-events:none;
+  animation:ptAnim var(--d) ease-out forwards;}
+@keyframes ptAnim{
+  0%{transform:translate(0,0) scale(1);opacity:1;}
+  100%{transform:translate(var(--x),var(--y)) scale(0);opacity:0;}
+}
+
+/* Countdown */
+#countdown{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:5rem;font-weight:900;color:#ffd93d;text-shadow:0 0 40px rgba(255,217,61,.9);
+  z-index:50;pointer-events:none;display:none;animation:countPop .75s ease-out forwards;}
+@keyframes countPop{
+  0%{transform:translate(-50%,-50%) scale(2.5);opacity:0;}
+  25%{opacity:1;}
+  75%{transform:translate(-50%,-50%) scale(1);opacity:1;}
+  100%{transform:translate(-50%,-50%) scale(.6);opacity:0;}
+}
+
+/* ── RESULT ── */
+#screen-result{background:radial-gradient(ellipse at 50% 30%,#1a0832 0%,#08080f 70%);padding:20px;text-align:center;}
+.res-title{font-size:2.2rem;font-weight:900;margin-bottom:4px;}
+.res-lv{color:rgba(255,255,255,.4);font-size:.8rem;letter-spacing:3px;margin-bottom:20px;}
+.res-stars{font-size:2.8rem;margin-bottom:12px;letter-spacing:4px;}
+.res-score{font-size:3rem;font-weight:900;color:#ffd93d;}
+.res-grade{font-size:5rem;font-weight:900;margin:4px 0 16px;}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:300px;margin:0 auto 24px;}
+.stat{background:rgba(255,255,255,.05);border-radius:12px;padding:10px 8px;}
+.stat-l{font-size:.62rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;}
+.stat-v{font-size:1.4rem;font-weight:700;margin-top:2px;}
+.res-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.btn{padding:13px 24px;border:none;border-radius:24px;font-size:.95rem;font-weight:700;
+  cursor:pointer;transition:transform .15s;}
+.btn:active{transform:scale(.93);}
+.btn-sec{background:rgba(255,255,255,.1);color:#fff;}
+.btn-pri{background:linear-gradient(135deg,#4d96ff,#6bcb77);color:#fff;}
+</style>
+</head>
+<body>
+
+<!-- ══ TITLE ══ -->
+<div id="screen-title" class="screen active">
+  <div class="logo">리듬마스터</div>
+  <div class="logo-sub">RHYTHM MASTER</div>
+  <div class="level-grid" id="level-grid"></div>
+  <div class="hint">키보드: D &nbsp;F &nbsp;J &nbsp;K &nbsp;|&nbsp; 마우스 / 터치로도 플레이</div>
+</div>
+
+<!-- ══ GAME ══ -->
+<div id="screen-game" class="screen">
+  <div id="progress-wrap"><div id="progress-bar"></div></div>
+  <div id="hud">
+    <div id="score-disp">0</div>
+    <div id="center-hud">
+      <div id="lv-disp">LEVEL 1</div>
+      <div id="combo-disp"></div>
+    </div>
+    <div id="acc-disp">100%</div>
+  </div>
+  <div id="game-area">
+    <div class="lane lane-0" data-lane="0">
+      <div class="hit-zone"></div><div class="lane-glow"></div>
+      <div class="lane-key">D</div>
+    </div>
+    <div class="lane lane-1" data-lane="1">
+      <div class="hit-zone"></div><div class="lane-glow"></div>
+      <div class="lane-key">F</div>
+    </div>
+    <div class="lane lane-2" data-lane="2">
+      <div class="hit-zone"></div><div class="lane-glow"></div>
+      <div class="lane-key">J</div>
+    </div>
+    <div class="lane lane-3" data-lane="3">
+      <div class="hit-zone"></div><div class="lane-glow"></div>
+      <div class="lane-key">K</div>
+    </div>
+  </div>
+  <div id="countdown"></div>
+  <button id="pause-btn">일시정지</button>
+</div>
+
+<!-- ══ RESULT ══ -->
+<div id="screen-result" class="screen">
+  <div class="res-title" id="res-title">클리어!</div>
+  <div class="res-lv" id="res-lv">LEVEL 1</div>
+  <div class="res-stars" id="res-stars">★★★</div>
+  <div class="res-score" id="res-score">0</div>
+  <div class="res-grade" id="res-grade">S</div>
+  <div class="stats-grid">
+    <div class="stat"><div class="stat-l">Perfect</div><div class="stat-v" id="s-perf" style="color:#ffd93d">0</div></div>
+    <div class="stat"><div class="stat-l">Good</div><div class="stat-v" id="s-good" style="color:#6bcb77">0</div></div>
+    <div class="stat"><div class="stat-l">Miss</div><div class="stat-v" id="s-miss" style="color:#ff6b6b">0</div></div>
+    <div class="stat"><div class="stat-l">최대 콤보</div><div class="stat-v" id="s-combo" style="color:#ff6b6b">0</div></div>
+    <div class="stat"><div class="stat-l">정확도</div><div class="stat-v" id="s-acc" style="color:#4d96ff">0%</div></div>
+    <div class="stat"><div class="stat-l">랭크</div><div class="stat-v" id="s-rank">-</div></div>
+  </div>
+  <div class="res-btns">
+    <button class="btn btn-sec" onclick="goTitle()">메뉴</button>
+    <button class="btn btn-sec" onclick="retry()">다시하기</button>
+    <button class="btn btn-pri" id="next-btn" onclick="goNext()">다음 레벨</button>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
