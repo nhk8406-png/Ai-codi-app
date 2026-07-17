@@ -439,7 +439,11 @@ function pMove(x,y){
   const ep=state.endpoints[ci];
   const isOE=(ep[0][0]===r&&ep[0][1]===c&&!(path[0][0]===ep[0][0]&&path[0][1]===ep[0][1]))||(ep[1][0]===r&&ep[1][1]===c&&!(path[0][0]===ep[1][0]&&path[0][1]===ep[1][1]));
   path.push([r,c]);state.grid[r][c]=ci;state.moves++;
-  if(isOE){state.dragging=-1;if(checkWin()){state.completed=true;const{ox,oy,cell:cs,sz}=layout();for(let i=0;i<8;i++){const col=COLORS[i%COLORS.length];burst(ox+Math.random()*cs*sz,oy+Math.random()*cs*sz,col,18);}}}
+  if(isOE){state.dragging=-1;if(checkWin()){state.completed=true;const{ox,oy,cell:cs,sz}=layout();for(let i=0;i<8;i++){const col=COLORS[i%COLORS.length];burst(ox+Math.random()*cs*sz,oy+Math.random()*cs*sz,col,18);}
+    // auto-advance after 1.5s (last level goes back to menu)
+    const nextLvl=state.level+1;
+    setTimeout(()=>{if(state.completed){nextLvl<35?go(nextLvl):go(0);}},1500);
+  }}
 }
 
 function pUp(){state.dragging=-1;}
