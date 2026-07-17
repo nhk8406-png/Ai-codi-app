@@ -1,0 +1,15 @@
+export const STR = {
+  title: "Crystal Flow",
+  level: "LEVEL",
+  complete: "LEVEL COMPLETE!",
+  next: "NEXT LEVEL",
+  restart: "RESTART",
+  moves: "MOVES",
+  hint: "Connect all crystals and fill every cell",
+  tap_to_start: "TAP TO START",
+  congratulations: "YOU WIN!",
+  all_clear: "All 35 Levels Complete!",
+  play_again: "PLAY AGAIN",
+  menu: "MENU",
+  back: "BACK",
+};

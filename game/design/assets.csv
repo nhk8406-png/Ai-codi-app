@@ -1,0 +1,4 @@
+id,role,type,description,size/ratio,style_line_ref,source
+bg_game,background canvas,background,deep cosmic dark background with subtle star particles,16:9,block4,generate_procedural
+gem_glow,particle effect,sprite,glowing crystal orb endpoint marker,1:1,block1-3,generate_procedural
+path_segment,path tile,tile,luminous neon path segment connecting crystals,1:1,block1-3,generate_procedural

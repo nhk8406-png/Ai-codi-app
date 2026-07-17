@@ -1,0 +1,834 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Crystal Flow</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Segoe UI', Arial, sans-serif; touch-action: none; }
+canvas { display: block; position: absolute; top: 0; left: 0; }
+#ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+#dev { position: fixed; top: 4px; right: 4px; color: #0f0; font: 11px monospace; display: none; z-index: 999; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui"></div>
+<div id="dev"></div>
+<script type="module">
+import { STR } from "./strings.js";
+
+// ─── SEEDED RNG ───────────────────────────────────────────────────────────────
+function mkRng(seed) {
+  let s = seed >>> 0;
+  return () => { s = (s ^ (s << 13)) >>> 0; s = (s ^ (s >> 17)) >>> 0; s = (s ^ (s << 5)) >>> 0; return s / 4294967296; };
+}
+
+// ─── STYLE FORMULA ────────────────────────────────────────────────────────────
+// Vibrant neon-gem fantasy art with deep cosmic dark backgrounds and luminous crystal glow effects.
+// Rounded jewel shapes with bright neon inner glow and subtle dark outlines.
+// Environment in deep space navy-black; crystals in rich jewel tones — sapphire, emerald, ruby, amber, amethyst, cyan.
+// Radiant luminous atmosphere with soft bloom light on crystal paths.
+// High contrast glowing elements against dark backgrounds, flat-frontal perspective.
+
+const COLORS = [
+  { name:'ruby',    fill:'#ff2244', glow:'#ff6688', dark:'#880022', light:'#ffaacc' },
+  { name:'sapphire',fill:'#2255ff', glow:'#66aaff', dark:'#001188', light:'#aaccff' },
+  { name:'emerald', fill:'#00cc44', glow:'#44ff88', dark:'#006622', light:'#aaffcc' },
+  { name:'amber',   fill:'#ffaa00', glow:'#ffdd44', dark:'#885500', light:'#ffeeaa' },
+  { name:'amethyst',fill:'#cc22ff', glow:'#ee88ff', dark:'#660088', light:'#eeccff' },
+  { name:'cyan',    fill:'#00ddff', glow:'#88ffff', dark:'#006688', light:'#aaffff' },
+  { name:'rose',    fill:'#ff6699', glow:'#ffaacc', dark:'#880044', light:'#ffddee' },
+];
+
+// ─── LEVELS ───────────────────────────────────────────────────────────────────
+// Format: { size, pairs: [[r1,c1,r2,c2], ...] } — endpoints for each color
+const LEVELS = [
+  // 1-5: 5x5, 3 colors — very easy
+  { size:5, pairs:[[0,0,4,4],[0,4,4,0],[2,0,2,4]] },
+  { size:5, pairs:[[0,0,3,2],[0,4,4,1],[2,2,4,4]] },
+  { size:5, pairs:[[0,0,0,4],[4,0,4,4],[2,1,2,3]] },
+  { size:5, pairs:[[0,0,4,3],[0,4,3,0],[2,0,2,4]] },
+  { size:5, pairs:[[0,1,3,4],[1,0,4,2],[0,3,4,0]] },
+  // 6-10: 5x5, 4 colors
+  { size:5, pairs:[[0,0,2,4],[0,4,4,0],[4,4,2,0],[1,2,3,2]] },
+  { size:5, pairs:[[0,0,4,4],[0,2,4,2],[0,4,4,0],[2,0,2,4]] },
+  { size:5, pairs:[[0,0,3,3],[0,4,4,1],[2,0,4,4],[1,2,3,2]] },
+  { size:5, pairs:[[0,1,4,3],[0,3,4,1],[1,0,3,4],[2,2,4,4]] },
+  { size:5, pairs:[[0,0,2,2],[0,4,2,2],[4,0,2,2],[4,4,2,2]] },
+  // 11-15: 6x6, 4 colors
+  { size:6, pairs:[[0,0,5,5],[0,5,5,0],[2,0,2,5],[0,2,5,2]] },
+  { size:6, pairs:[[0,0,5,3],[0,5,5,2],[3,0,3,5],[1,3,4,3]] },
+  { size:6, pairs:[[0,0,4,5],[0,5,4,0],[5,0,5,5],[2,2,2,4]] },
+  { size:6, pairs:[[0,1,5,4],[0,4,5,1],[1,0,4,5],[2,3,3,2]] },
+  { size:6, pairs:[[0,0,3,5],[0,5,3,0],[5,0,5,5],[2,1,2,4]] },
+  // 16-20: 6x6, 5 colors
+  { size:6, pairs:[[0,0,5,5],[0,5,5,0],[2,0,2,5],[0,2,5,2],[3,3,1,1]] },
+  { size:6, pairs:[[0,0,5,4],[0,5,5,1],[3,0,3,5],[1,3,4,2],[2,2,4,4]] },
+  { size:6, pairs:[[0,1,5,3],[0,4,5,1],[1,0,4,5],[2,2,4,3],[0,0,5,5]] },
+  { size:6, pairs:[[0,0,4,4],[0,5,4,1],[5,0,2,5],[1,2,3,4],[2,0,5,3]] },
+  { size:6, pairs:[[0,2,5,3],[0,4,5,1],[1,0,4,5],[0,0,5,5],[2,3,3,2]] },
+  // 21-25: 7x7, 5 colors
+  { size:7, pairs:[[0,0,6,6],[0,6,6,0],[3,0,3,6],[0,3,6,3],[1,1,5,5]] },
+  { size:7, pairs:[[0,0,5,6],[0,6,6,1],[6,0,6,6],[2,0,2,6],[1,3,4,3]] },
+  { size:7, pairs:[[0,1,6,5],[0,5,6,1],[1,0,5,6],[3,3,3,6],[0,0,6,6]] },
+  { size:7, pairs:[[0,0,4,6],[0,6,4,0],[6,0,6,6],[2,2,4,4],[1,4,5,2]] },
+  { size:7, pairs:[[0,2,6,4],[0,4,6,2],[1,0,5,6],[3,0,3,6],[0,0,6,6]] },
+  // 26-30: 7x7, 6 colors
+  { size:7, pairs:[[0,0,6,6],[0,6,6,0],[3,0,3,6],[0,3,6,3],[1,1,5,5],[2,4,4,2]] },
+  { size:7, pairs:[[0,0,5,5],[0,6,6,1],[6,0,6,5],[2,0,2,6],[1,3,5,3],[3,2,3,4]] },
+  { size:7, pairs:[[0,1,6,5],[0,4,6,2],[1,0,5,6],[3,1,3,5],[0,0,6,6],[2,3,4,3]] },
+  { size:7, pairs:[[0,0,4,5],[0,6,4,1],[6,0,6,6],[2,2,4,4],[1,4,5,2],[3,0,3,6]] },
+  { size:7, pairs:[[0,2,6,4],[0,4,6,2],[1,0,5,6],[3,0,3,6],[0,0,6,6],[2,1,4,5]] },
+  // 31-35: 7x7, 6-7 colors — medium challenge
+  { size:7, pairs:[[0,0,6,4],[0,3,5,6],[0,6,6,0],[2,1,4,5],[3,3,1,5],[6,6,4,2]] },
+  { size:7, pairs:[[0,0,4,6],[0,6,6,2],[6,0,4,4],[1,2,5,4],[2,0,2,6],[3,1,3,5],[5,0,5,6]] },
+  { size:7, pairs:[[0,0,6,6],[0,3,6,3],[0,6,6,0],[2,0,4,6],[1,1,5,5],[3,2,3,4],[2,3,4,3]] },
+  { size:7, pairs:[[0,1,6,5],[0,4,6,2],[1,0,5,6],[0,6,6,0],[3,0,3,6],[1,3,5,3],[2,2,4,4]] },
+  { size:7, pairs:[[0,0,6,6],[0,2,6,4],[0,5,5,0],[1,1,5,5],[3,0,3,6],[0,6,6,0],[2,3,4,3]] },
+];
+
+// ─── CANVAS & DPR ────────────────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const DPR_CAP = 2;
+let W = 0, H = 0, dpr = 1;
+
+function resize() {
+  dpr = Math.min(devicePixelRatio || 1, DPR_CAP);
+  W = innerWidth; H = innerHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+addEventListener('resize', () => { resize(); });
+addEventListener('orientationchange', () => { resize(); });
+resize();
+
+// ─── GAME STATE ───────────────────────────────────────────────────────────────
+let state = {
+  screen: 'menu',   // 'menu' | 'game' | 'win' | 'allclear'
+  level: 0,
+  grid: null,       // size x size array of cell values
+  paths: [],        // per-color path arrays [[r,c],...]
+  endpoints: [],    // per-color [[r1,c1],[r2,c2]]
+  dragging: -1,     // color index being drawn
+  moves: 0,
+  completed: false,
+  particles: [],
+  stars: [],
+  t: 0,
+};
+
+// ─── PARTICLES ───────────────────────────────────────────────────────────────
+function spawnBurst(x, y, color, n=12) {
+  for (let i = 0; i < n; i++) {
+    const ang = (Math.PI * 2 * i) / n + Math.random() * 0.5;
+    const spd = 60 + Math.random() * 120;
+    state.particles.push({
+      x, y, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd,
+      life: 1, maxLife: 0.7 + Math.random()*0.5,
+      r: 3 + Math.random()*4, color
+    });
+  }
+}
+
+function spawnStars() {
+  state.stars = [];
+  const rng = mkRng(42);
+  for (let i = 0; i < 120; i++) {
+    state.stars.push({
+      x: rng() * 2000, y: rng() * 2000,
+      r: rng() * 1.5 + 0.3,
+      a: rng(), speed: rng() * 0.3 + 0.1,
+    });
+  }
+}
+spawnStars();
+
+// ─── GRID HELPERS ────────────────────────────────────────────────────────────
+function initLevel(idx) {
+  const lvl = LEVELS[idx];
+  const sz = lvl.size;
+  state.grid = Array.from({length: sz}, () => Array(sz).fill(-1));
+  state.paths = lvl.pairs.map(() => []);
+  state.endpoints = lvl.pairs.map(([r1,c1,r2,c2]) => [[r1,c1],[r2,c2]]);
+  // mark endpoints on grid
+  lvl.pairs.forEach(([r1,c1,r2,c2], ci) => {
+    state.grid[r1][c1] = ci;
+    state.grid[r2][c2] = ci;
+    state.paths[ci] = [];
+  });
+  state.dragging = -1;
+  state.moves = 0;
+  state.completed = false;
+  state.particles = [];
+}
+
+function isEndpoint(r, c) {
+  return state.endpoints.some(([a,b]) => (a[0]===r&&a[1]===c)||(b[0]===r&&b[1]===c));
+}
+
+function colorOfEndpoint(r, c) {
+  return state.endpoints.findIndex(([a,b]) => (a[0]===r&&a[1]===c)||(b[0]===r&&b[1]===c));
+}
+
+function cellInPath(ci, r, c) {
+  return state.paths[ci].some(([pr,pc]) => pr===r && pc===c);
+}
+
+function checkWin() {
+  const lvl = LEVELS[state.level];
+  const sz = lvl.size;
+  // all colors connected (path hits both endpoints)
+  const allConnected = state.endpoints.every(([a,b], ci) => {
+    const p = state.paths[ci];
+    if (p.length < 2) return false;
+    const head = p[0], tail = p[p.length-1];
+    return (head[0]===a[0]&&head[1]===a[1]&&tail[0]===b[0]&&tail[1]===b[1])
+        || (tail[0]===a[0]&&tail[1]===a[1]&&head[0]===b[0]&&head[1]===b[1]);
+  });
+  if (!allConnected) return false;
+  // all cells filled
+  const filled = state.paths.reduce((s,p) => s + p.length, 0)
+    + state.endpoints.reduce((s,_,ci) => {
+        // endpoints not already in path
+        const inPath = (ep) => cellInPath(ci, ep[0], ep[1]);
+        return s; // paths already include endpoints since we add them
+      }, 0);
+  // count unique cells occupied
+  const seen = new Set();
+  state.paths.forEach(p => p.forEach(([r,c]) => seen.add(r*100+c)));
+  return seen.size === sz*sz;
+}
+
+// ─── GRID LAYOUT ─────────────────────────────────────────────────────────────
+function getLayout() {
+  const sz = LEVELS[state.level].size;
+  const pad = Math.min(W, H) * 0.08;
+  const topPad = H * 0.13;
+  const avail = Math.min(W - pad*2, H - topPad - pad);
+  const cell = Math.floor(avail / sz);
+  const gw = cell * sz;
+  const ox = Math.floor((W - gw) / 2);
+  const oy = Math.floor(topPad + (H - topPad - pad - gw) / 2);
+  return { cell, ox, oy, sz };
+}
+
+function cellAt(px, py) {
+  const { cell, ox, oy, sz } = getLayout();
+  const c = Math.floor((px - ox) / cell);
+  const r = Math.floor((py - oy) / cell);
+  if (r < 0 || r >= sz || c < 0 || c >= sz) return null;
+  return [r, c];
+}
+
+// ─── DRAW ─────────────────────────────────────────────────────────────────────
+function drawStars() {
+  const t = state.t;
+  for (const s of state.stars) {
+    const a = (Math.sin(t * s.speed + s.a * 10) + 1) / 2 * 0.8 + 0.1;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc((s.x % W), (s.y % H), s.r, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawNebula() {
+  // subtle background gradient blobs
+  const g1 = ctx.createRadialGradient(W*0.3, H*0.3, 0, W*0.3, H*0.3, W*0.5);
+  g1.addColorStop(0, 'rgba(50,0,80,0.18)');
+  g1.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g1;
+  ctx.fillRect(0, 0, W, H);
+
+  const g2 = ctx.createRadialGradient(W*0.75, H*0.7, 0, W*0.75, H*0.7, W*0.4);
+  g2.addColorStop(0, 'rgba(0,30,80,0.15)');
+  g2.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g2;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawGemGlow(x, y, r, col, pulse=1) {
+  // outer glow
+  for (let i = 3; i >= 1; i--) {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r * i * 1.4 * pulse);
+    g.addColorStop(0, col.glow + '88');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r * i * 1.4 * pulse, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // gem body
+  const grad = ctx.createRadialGradient(x - r*0.25, y - r*0.25, r*0.05, x, y, r);
+  grad.addColorStop(0, col.light);
+  grad.addColorStop(0.4, col.fill);
+  grad.addColorStop(1, col.dark);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  // hexagonal gem shape
+  const sides = 6;
+  for (let i = 0; i < sides; i++) {
+    const a = (Math.PI * 2 * i / sides) - Math.PI/2;
+    const px = x + Math.cos(a) * r;
+    const py = y + Math.sin(a) * r;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // inner shine
+  const shine = ctx.createRadialGradient(x - r*0.3, y - r*0.35, 0, x - r*0.1, y - r*0.1, r*0.55);
+  shine.addColorStop(0, 'rgba(255,255,255,0.7)');
+  shine.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = shine;
+  ctx.beginPath();
+  for (let i = 0; i < sides; i++) {
+    const a = (Math.PI * 2 * i / sides) - Math.PI/2;
+    const px = x + Math.cos(a) * r;
+    const py = y + Math.sin(a) * r;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawPath(path, col, cell) {
+  if (path.length < 2) return;
+  const { ox, oy } = getLayout();
+  const w = cell * 0.32;
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // glow layers
+  for (let layer = 3; layer >= 1; layer--) {
+    ctx.strokeStyle = col.glow + (layer === 3 ? '30' : layer === 2 ? '55' : '99');
+    ctx.lineWidth = w * (1 + layer * 0.5);
+    ctx.beginPath();
+    path.forEach(([r,c], i) => {
+      const px = ox + c * cell + cell/2;
+      const py = oy + r * cell + cell/2;
+      if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    });
+    ctx.stroke();
+  }
+
+  // core
+  ctx.strokeStyle = col.fill;
+  ctx.lineWidth = w;
+  ctx.beginPath();
+  path.forEach(([r,c], i) => {
+    const px = ox + c * cell + cell/2;
+    const py = oy + r * cell + cell/2;
+    if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+
+  // bright center
+  ctx.strokeStyle = col.light;
+  ctx.lineWidth = w * 0.35;
+  ctx.beginPath();
+  path.forEach(([r,c], i) => {
+    const px = ox + c * cell + cell/2;
+    const py = oy + r * cell + cell/2;
+    if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawGrid() {
+  const { cell, ox, oy, sz } = getLayout();
+  const t = state.t;
+
+  // grid background panel
+  const panelPad = cell * 0.15;
+  ctx.save();
+  ctx.fillStyle = 'rgba(10,5,30,0.85)';
+  ctx.strokeStyle = 'rgba(80,50,150,0.4)';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, ox - panelPad, oy - panelPad, sz*cell + panelPad*2, sz*cell + panelPad*2, cell*0.15);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+
+  // grid lines
+  ctx.save();
+  ctx.strokeStyle = 'rgba(100,70,200,0.2)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= sz; i++) {
+    ctx.beginPath();
+    ctx.moveTo(ox + i*cell, oy);
+    ctx.lineTo(ox + i*cell, oy + sz*cell);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(ox, oy + i*cell);
+    ctx.lineTo(ox + sz*cell, oy + i*cell);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // paths
+  state.paths.forEach((path, ci) => {
+    if (path.length >= 2) drawPath(path, COLORS[ci % COLORS.length], cell);
+  });
+
+  // endpoints
+  state.endpoints.forEach(([a, b], ci) => {
+    const col = COLORS[ci % COLORS.length];
+    const pulse = 1 + Math.sin(t * 2 + ci * 1.3) * 0.08;
+    for (const [r,c] of [a, b]) {
+      const px = ox + c*cell + cell/2;
+      const py = oy + r*cell + cell/2;
+      drawGemGlow(px, py, cell * 0.33 * pulse, col, pulse);
+    }
+  });
+}
+
+function drawParticles() {
+  for (const p of state.particles) {
+    ctx.save();
+    ctx.globalAlpha = p.life / p.maxLife * 0.9;
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 2);
+    g.addColorStop(0, p.color.light);
+    g.addColorStop(0.5, p.color.fill);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * 2, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function glowText(text, x, y, size, col, glow='#ffffff', align='center') {
+  ctx.save();
+  ctx.textAlign = align;
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold ${size}px "Segoe UI", Arial, sans-serif`;
+  // glow layers
+  ctx.shadowColor = glow;
+  ctx.shadowBlur = size * 0.8;
+  ctx.fillStyle = glow;
+  ctx.fillText(text, x, y);
+  ctx.shadowBlur = size * 0.3;
+  ctx.fillStyle = col;
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+}
+
+function drawButton(text, x, y, w, h, col, glowCol) {
+  const r = h * 0.4;
+  ctx.save();
+  // outer glow
+  ctx.shadowColor = glowCol;
+  ctx.shadowBlur = 20;
+  const grad = ctx.createLinearGradient(x, y, x, y+h);
+  grad.addColorStop(0, col + 'dd');
+  grad.addColorStop(1, col + '88');
+  ctx.fillStyle = grad;
+  roundRect(ctx, x - w/2, y - h/2, w, h, r);
+  ctx.fill();
+  ctx.strokeStyle = glowCol + 'cc';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, x - w/2, y - h/2, w, h, r);
+  ctx.stroke();
+  ctx.restore();
+  glowText(text, x, y, h * 0.42, '#ffffff', glowCol);
+}
+
+function drawHUD() {
+  const lvl = state.level + 1;
+  const t = state.t;
+
+  // top bar background
+  const topH = H * 0.11;
+  const barGrad = ctx.createLinearGradient(0, 0, 0, topH);
+  barGrad.addColorStop(0, 'rgba(20,5,50,0.95)');
+  barGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = barGrad;
+  ctx.fillRect(0, 0, W, topH);
+
+  glowText(`${STR.level} ${lvl}`, W/2, H*0.042, Math.min(W, H)*0.048, '#e0d0ff', '#cc88ff');
+
+  // level progress dots
+  const dotR = Math.min(W, H) * 0.012;
+  const dotSpacing = Math.min(W * 0.012, 14);
+  const totalW = (35 - 1) * dotSpacing + dotR * 2;
+  const dotX0 = (W - totalW) / 2;
+  const dotY = H * 0.088;
+  for (let i = 0; i < 35; i++) {
+    const dx = dotX0 + i * dotSpacing;
+    const done = i < state.level;
+    const cur = i === state.level;
+    ctx.save();
+    if (cur) {
+      ctx.shadowColor = '#cc88ff';
+      ctx.shadowBlur = 10;
+    }
+    ctx.fillStyle = done ? '#cc88ff' : cur ? '#ffffff' : 'rgba(100,70,150,0.35)';
+    ctx.beginPath();
+    ctx.arc(dx, dotY, cur ? dotR * 1.4 : dotR * (done ? 1.1 : 0.9), 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // moves counter bottom-right
+  const msize = Math.min(W, H) * 0.035;
+  glowText(`${STR.moves}: ${state.moves}`, W - W*0.04, H - H*0.04, msize, '#aaddff', '#44aaff', 'right');
+
+  // hint (bottom center) for early levels
+  if (state.level < 5) {
+    glowText(STR.hint, W/2, H - H*0.04, Math.min(W,H)*0.025, 'rgba(180,160,220,0.7)', 'rgba(100,80,160,0.5)');
+  }
+}
+
+function drawMenu() {
+  // bg
+  ctx.fillStyle = '#000010';
+  ctx.fillRect(0, 0, W, H);
+  drawNebula();
+  drawStars();
+
+  // title
+  const ts = Math.min(W, H) * 0.09;
+  const ty = H * 0.28;
+  glowText('CRYSTAL', W/2, ty, ts, '#e0c0ff', '#cc44ff');
+  glowText('FLOW', W/2, ty + ts * 1.15, ts * 1.2, '#ffffff', '#8844ff');
+
+  // subtitle
+  glowText('35 Levels of Gem Puzzles', W/2, H*0.52, Math.min(W,H)*0.038, '#aabbff', '#4466ff');
+
+  // gem decorations
+  const t = state.t;
+  for (let i = 0; i < COLORS.length; i++) {
+    const ang = (Math.PI*2*i/COLORS.length) + t*0.3;
+    const rad = Math.min(W,H)*0.25;
+    const gx = W/2 + Math.cos(ang)*rad;
+    const gy = H*0.38 + Math.sin(ang)*rad*0.35;
+    drawGemGlow(gx, gy, Math.min(W,H)*0.028 * (1+Math.sin(t+i)*0.12), COLORS[i]);
+  }
+
+  drawButton(STR.tap_to_start, W/2, H*0.72, Math.min(W,H)*0.52, Math.min(W,H)*0.085, '#220055', '#cc44ff');
+}
+
+function drawWin() {
+  ctx.fillStyle = 'rgba(0,0,10,0.7)';
+  ctx.fillRect(0, 0, W, H);
+  drawParticles();
+
+  const t = state.t;
+  const pulse = 1 + Math.sin(t*3)*0.04;
+
+  glowText(STR.complete, W/2, H*0.32, Math.min(W,H)*0.07 * pulse, '#ffffff', '#ffdd44');
+
+  // star rating display
+  for (let i = 0; i < 3; i++) {
+    const sx = W/2 + (i-1)*Math.min(W,H)*0.13;
+    const sz = Math.min(W,H)*0.06;
+    drawStar(sx, H*0.46, sz, '#ffdd00', '#ff8800');
+  }
+
+  const nextLvl = state.level + 1;
+  if (nextLvl < 35) {
+    drawButton(`${STR.next} →`, W/2, H*0.65, Math.min(W,H)*0.55, Math.min(W,H)*0.09, '#003322', '#00ff88');
+  } else {
+    glowText(STR.all_clear, W/2, H*0.6, Math.min(W,H)*0.05, '#ffdd44', '#ffaa00');
+    drawButton(STR.play_again, W/2, H*0.72, Math.min(W,H)*0.5, Math.min(W,H)*0.09, '#220044', '#cc44ff');
+  }
+  drawButton(STR.menu, W/2, H*0.78, Math.min(W,H)*0.35, Math.min(W,H)*0.07, '#111122', '#6644ff');
+}
+
+function drawStar(cx, cy, r, col1, col2) {
+  const pts = 5;
+  ctx.save();
+  ctx.shadowColor = col2;
+  ctx.shadowBlur = r;
+  const g = ctx.createRadialGradient(cx-r*0.2, cy-r*0.3, 0, cx, cy, r);
+  g.addColorStop(0, '#ffffff');
+  g.addColorStop(0.4, col1);
+  g.addColorStop(1, col2);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  for (let i = 0; i < pts * 2; i++) {
+    const ang = (Math.PI * i / pts) - Math.PI/2;
+    const rad = i % 2 === 0 ? r : r * 0.42;
+    const x = cx + Math.cos(ang) * rad;
+    const y = cy + Math.sin(ang) * rad;
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawGame() {
+  // background
+  ctx.fillStyle = '#00000f';
+  ctx.fillRect(0, 0, W, H);
+  drawNebula();
+  drawStars();
+  drawGrid();
+  drawParticles();
+  drawHUD();
+
+  if (state.completed) {
+    drawWin();
+  }
+}
+
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  if (state.screen === 'menu') drawMenu();
+  else drawGame();
+}
+
+// ─── INPUT ────────────────────────────────────────────────────────────────────
+function pointerToCell(x, y) {
+  if (state.screen !== 'game' || state.completed) return null;
+  return cellAt(x, y);
+}
+
+function onPointerDown(x, y) {
+  if (state.screen === 'menu') {
+    startGame(0);
+    return;
+  }
+  if (state.completed) {
+    // check buttons
+    const nextLvl = state.level + 1;
+    const btnH = Math.min(W,H)*0.09;
+    const btnY1 = H*0.65;
+    const btnY2 = nextLvl < 35 ? H*0.78 : H*0.78;
+    if (Math.abs(y - btnY1) < btnH && nextLvl < 35) {
+      startGame(nextLvl);
+    } else if (Math.abs(y - btnY1) < btnH && nextLvl >= 35) {
+      startGame(0);
+    } else if (Math.abs(y - btnY2) < btnH) {
+      state.screen = 'menu';
+    }
+    return;
+  }
+
+  const cell = pointerToCell(x, y);
+  if (!cell) return;
+  const [r, c] = cell;
+
+  // find color to start dragging
+  const ci = colorOfEndpoint(r, c);
+  if (ci >= 0) {
+    // start drag from this endpoint, clear existing path for this color
+    const col = COLORS[ci % COLORS.length];
+    const ep = state.endpoints[ci];
+    // clear old path
+    if (state.paths[ci].length > 0) {
+      state.paths[ci].forEach(([pr,pc]) => {
+        if (!isEndpoint(pr,pc)) state.grid[pr][pc] = -1;
+      });
+    }
+    state.paths[ci] = [[r, c]];
+    state.grid[r][c] = ci;
+    state.dragging = ci;
+    spawnBurst(
+      getLayout().ox + c*getLayout().cell + getLayout().cell/2,
+      getLayout().oy + r*getLayout().cell + getLayout().cell/2,
+      col, 6
+    );
+  } else {
+    const existing = state.grid[r][c];
+    if (existing >= 0) {
+      // start dragging from a path cell (truncate path to this point)
+      const path = state.paths[existing];
+      const idx = path.findIndex(([pr,pc]) => pr===r && pc===c);
+      if (idx >= 0) {
+        // clear tail
+        for (let i = idx + 1; i < path.length; i++) {
+          const [pr,pc] = path[i];
+          if (!isEndpoint(pr,pc)) state.grid[pr][pc] = -1;
+        }
+        state.paths[existing] = path.slice(0, idx + 1);
+        state.dragging = existing;
+      }
+    }
+  }
+}
+
+function onPointerMove(x, y) {
+  if (state.dragging < 0) return;
+  const cell = pointerToCell(x, y);
+  if (!cell) return;
+  const [r, c] = cell;
+  const ci = state.dragging;
+  const path = state.paths[ci];
+  if (!path.length) return;
+
+  const [lr, lc] = path[path.length - 1];
+  if (lr === r && lc === c) return; // same cell
+
+  // must be adjacent
+  if (Math.abs(r - lr) + Math.abs(c - lc) !== 1) return;
+
+  // check if it loops back on own path (truncate)
+  const loopIdx = path.findIndex(([pr,pc]) => pr===r && pc===c);
+  if (loopIdx >= 0) {
+    // truncate to loopIdx
+    for (let i = loopIdx + 1; i < path.length; i++) {
+      const [pr,pc] = path[i];
+      if (!isEndpoint(pr,pc)) state.grid[pr][pc] = -1;
+    }
+    state.paths[ci] = path.slice(0, loopIdx + 1);
+    return;
+  }
+
+  // check if cell is occupied by another color
+  const occ = state.grid[r][c];
+  if (occ >= 0 && occ !== ci) {
+    // can't overwrite endpoint of another color
+    if (isEndpoint(r,c) && occ !== ci) return;
+    // overwrite path of another color (clear their path from this cell onwards)
+    const otherPath = state.paths[occ];
+    const oi = otherPath.findIndex(([pr,pc]) => pr===r && pc===c);
+    if (oi >= 0) {
+      for (let i = oi; i < otherPath.length; i++) {
+        const [pr,pc] = otherPath[i];
+        if (!isEndpoint(pr,pc)) state.grid[pr][pc] = -1;
+      }
+      state.paths[occ] = otherPath.slice(0, oi);
+    }
+  }
+
+  // check if we've reached the other endpoint
+  const ep = state.endpoints[ci];
+  const isOtherEnd = (ep[0][0]===r&&ep[0][1]===c&&!(path[0][0]===ep[0][0]&&path[0][1]===ep[0][1]))
+    || (ep[1][0]===r&&ep[1][1]===c&&!(path[0][0]===ep[1][0]&&path[0][1]===ep[1][1]));
+
+  path.push([r, c]);
+  state.grid[r][c] = ci;
+  state.moves++;
+
+  if (isOtherEnd) {
+    state.dragging = -1;
+    if (checkWin()) {
+      state.completed = true;
+      // big celebration burst
+      const { cell: cs, ox, oy } = getLayout();
+      for (let i = 0; i < 7; i++) {
+        const col = COLORS[i % COLORS.length];
+        const bx = ox + Math.random() * cs * LEVELS[state.level].size;
+        const by = oy + Math.random() * cs * LEVELS[state.level].size;
+        spawnBurst(bx, by, col, 16);
+      }
+    }
+  }
+}
+
+function onPointerUp() {
+  state.dragging = -1;
+}
+
+// unified pointer handling
+canvas.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  onPointerDown(e.clientX, e.clientY);
+}, { passive: false });
+canvas.addEventListener('pointermove', e => {
+  e.preventDefault();
+  onPointerMove(e.clientX, e.clientY);
+}, { passive: false });
+canvas.addEventListener('pointerup', e => {
+  e.preventDefault();
+  onPointerUp();
+}, { passive: false });
+
+// keyboard support
+addEventListener('keydown', e => {
+  if (state.screen === 'menu' && e.code === 'Space') { startGame(0); return; }
+  if (state.screen === 'game' && state.completed) {
+    if (e.code === 'Enter' || e.code === 'Space') {
+      const nextLvl = state.level + 1;
+      if (nextLvl < 35) startGame(nextLvl);
+      else startGame(0);
+    }
+    if (e.code === 'Escape') state.screen = 'menu';
+    return;
+  }
+  if (e.code === 'KeyR') { startGame(state.level); }
+  if (e.code === 'Escape') { state.screen = 'menu'; }
+});
+
+function startGame(idx) {
+  state.level = idx;
+  state.screen = 'game';
+  initLevel(idx);
+}
+
+// ─── LOOP ─────────────────────────────────────────────────────────────────────
+const STEP = 1000 / 60;
+let acc = 0, last = performance.now(), paused = false, frames = 0, fpsAt = last, fps = 0;
+const devEl = document.getElementById('dev');
+const isDev = new URLSearchParams(location.search).has('dev');
+if (isDev) devEl.style.display = 'block';
+
+addEventListener('blur', () => paused = true);
+addEventListener('focus', () => { paused = false; last = performance.now(); });
+
+function tick(dt) {
+  state.t += dt / 1000;
+
+  // update particles
+  const dead = [];
+  state.particles.forEach((p, i) => {
+    p.x += p.vx * dt / 1000;
+    p.y += p.vy * dt / 1000;
+    p.vy += 120 * dt / 1000; // gravity
+    p.life -= dt / 1000;
+    p.r *= 0.995;
+    if (p.life <= 0) dead.push(i);
+  });
+  for (let i = dead.length - 1; i >= 0; i--) state.particles.splice(dead[i], 1);
+}
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (paused) { last = now; return; }
+  const dt = Math.min(now - last, 50);
+  acc += dt; last = now;
+  while (acc >= STEP) { tick(STEP); acc -= STEP; }
+  render();
+  if (isDev) {
+    frames++;
+    if (now - fpsAt >= 500) {
+      fps = Math.round(frames * 1000 / (now - fpsAt));
+      frames = 0; fpsAt = now;
+      devEl.textContent = fps + ' fps | particles:' + state.particles.length;
+    }
+  }
+}
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
