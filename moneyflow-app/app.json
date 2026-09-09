@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "MoneyFlow",
+    "slug": "moneyflow",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#08101E"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.moneyflow.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#08101E"
+      },
+      "package": "com.moneyflow.app"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
